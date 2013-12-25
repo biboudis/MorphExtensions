@@ -17,8 +17,7 @@ public class ExpansionChecker extends SourceChecker {
 
 	@Override
 	public void typeProcess(TypeElement elem, TreePath path) {
-		JCTree tree = (JCTree) path.getCompilationUnit();
-		
+		JCTree tree = (JCTree) path.getCompilationUnit();		
 		tree.accept(new StaticForMethodExpander(processingEnv, path));
 	}
 
