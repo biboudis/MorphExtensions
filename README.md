@@ -1,4 +1,4 @@
-MorphJ Annotations
-==================
+Morph Extensions for Java
+=========================
 
-Introducing class-morphing to Java, via (JSR 308) type annotations.
+This library introduces class-morphing to Java via (JSR 308) type annotations.
