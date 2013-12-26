@@ -1,0 +1,46 @@
+#!/bin/bash
+
+MORPHEXT_HOME=$HOME/Projects/MorphExtensions/bin
+LIB_NAME=morphextensions.jar
+LIB_PATH=$MORPHEXT_HOME/$LIB_NAME
+
+INPUT_FILES=
+OPTIONS=
+WHATIF=false
+
+function usage
+{
+    echo "usage: javamc [-h] | [--whatif]] files"
+}
+
+if [ ! -f $LIB_PATH ]; then
+    echo "error: morph extensions library not found or not generated."
+    exit
+fi
+
+while [ "$1" != "" ]; do
+    case $1 in
+        -h | --help )
+            usage
+            exit
+            ;;
+        --whatif )
+            WHATIF=true
+            shift
+            ;;
+        *.java )
+            INPUT_FILES="$INPUT_FILES $1"
+            shift
+            ;;
+        * )
+            shift
+            ;;
+    esac
+done
+
+if $WHATIF
+then
+    echo "javac -Xbootclasspath/p:$LIB_PATH $INPUT_FILES"
+else
+    javac -Xbootclasspath/p:$LIB_PATH $INPUT_FILES
+fi

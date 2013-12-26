@@ -13,7 +13,7 @@ import checkers.source.SourceVisitor;
 import expanders.StaticForMethodExpander;
 
 @TypeQualifiers({For.class})
-public class ExpansionChecker extends SourceChecker {
+public class ForChecker extends SourceChecker {
 
 	@Override
 	public void typeProcess(TypeElement elem, TreePath path) {
