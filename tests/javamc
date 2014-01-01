@@ -1,9 +1,21 @@
 #!/bin/bash
 
+# checker library
 MORPHEXT_HOME=$HOME/Projects/MorphExtensions/bin
 LIB_NAME=morphextensions.jar
 LIB_PATH=$MORPHEXT_HOME/$LIB_NAME
 
+# classpath setup
+CHECKERS_CP_PREFIX=/home/bibou/Projects/types/checker-framework/binary
+CHECKERS=$CHECKERS_CP_PREFIX/checkers.jar
+JAVAC=$CHECKERS_CP_PREFIX/javac.jar
+JDK7=$CHECKERS_CP_PREFIX/jdk7.jar
+CHECKER_CP=$CHECKERS:$JAVAC:$JDK7
+
+# checker framework
+ENABLED_CHECKERS=checkers.MorphChecker
+
+# options for javac command
 INPUT_FILES=
 OPTIONS=
 WHATIF=false
@@ -38,9 +50,11 @@ while [ "$1" != "" ]; do
     esac
 done
 
+COMMAND="javac -Xbootclasspath/p:$LIB_PATH:$CHECKER_CP -processorpath $LIB_PATH:$CHECKER_CP -processor $ENABLED_CHECKERS $INPUT_FILES"
+
 if $WHATIF
 then
-    echo "javac -Xbootclasspath/p:$LIB_PATH $INPUT_FILES"
+    echo $COMMAND
 else
-    javac -Xbootclasspath/p:$LIB_PATH $INPUT_FILES
+    $COMMAND
 fi

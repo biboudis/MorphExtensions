@@ -14,17 +14,29 @@ import checkers.quals.TypeQualifiers;
 import checkers.source.SourceChecker;
 import checkers.source.SourceVisitor;
 
-@TypeQualifiers({Morph.class})
+/**
+ * @author bibou
+ * 
+ */
+@TypeQualifiers({ Morph.class })
 public class MorphChecker extends SourceChecker {
 
 	@Override
 	public void typeProcess(TypeElement elem, TreePath path) {
-		
+		// EnerJ note: Run the SourceChecker base behavior *first* to set
+		// currentPath, which must be set before BasicAnnotatedTypeFactory is
+		// instantiated.
 		super.typeProcess(elem, path);
+		
+		JCTree tree = (JCTree) path.getCompilationUnit();
 
-		JCTree tree = (JCTree) path.getCompilationUnit();		
+		System.out.println("Translating from:");
+        System.out.println(tree);
 		
 		tree.accept(new InstantiationTranslator(processingEnv, path));
+		
+		System.out.println("Translating to:");
+        System.out.println(tree);
 	}
 
 	@Override
@@ -32,5 +44,5 @@ public class MorphChecker extends SourceChecker {
 		// TODO Auto-generated method stub
 		return null;
 	}
-	
+
 }
