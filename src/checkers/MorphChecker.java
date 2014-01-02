@@ -19,11 +19,11 @@ import checkers.source.SourceVisitor;
  * 
  */
 @TypeQualifiers({ Morph.class })
-public class MorphChecker extends SourceChecker {
+public class MorphChecker extends BaseTypeChecker {
 
 	@Override
 	public void typeProcess(TypeElement elem, TreePath path) {
-		// EnerJ note: Run the SourceChecker base behavior *first* to set
+		// Note taken from EnerJ: Run the SourceChecker base behavior *first* to set
 		// currentPath, which must be set before BasicAnnotatedTypeFactory is
 		// instantiated.
 		super.typeProcess(elem, path);
@@ -38,11 +38,4 @@ public class MorphChecker extends SourceChecker {
 		System.out.println("Translating to:");
         System.out.println(tree);
 	}
-
-	@Override
-	protected SourceVisitor<?, ?> createSourceVisitor() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
 }
