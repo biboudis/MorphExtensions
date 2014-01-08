@@ -3,21 +3,13 @@ package checkers;
 import javax.lang.model.element.TypeElement;
 
 import visitors.InstantiationTranslator;
+import annotations.Morph;
+import checkers.basetype.BaseTypeChecker;
+import checkers.quals.TypeQualifiers;
 
 import com.sun.source.util.TreePath;
 import com.sun.tools.javac.tree.JCTree;
 
-import annotations.For;
-import annotations.Morph;
-import checkers.basetype.BaseTypeChecker;
-import checkers.quals.TypeQualifiers;
-import checkers.source.SourceChecker;
-import checkers.source.SourceVisitor;
-
-/**
- * @author bibou
- * 
- */
 @TypeQualifiers({ Morph.class })
 public class MorphChecker extends BaseTypeChecker {
 

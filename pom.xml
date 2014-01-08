@@ -82,19 +82,19 @@
 		<dependency>
 			<groupId>types.checkers</groupId>
 			<artifactId>framework</artifactId>
-			<version>1.7.0</version>
+			<version>1.7.2</version>
 		</dependency>
 
 		<dependency>
 			<groupId>types.checkers</groupId>
 			<artifactId>compiler</artifactId>
-			<version>1.7.0</version>
+			<version>1.7.2</version>
 		</dependency>
 
 		<dependency>
 			<groupId>types.checkers</groupId>
 			<artifactId>jdk7</artifactId>
-			<version>1.7.0</version>
+			<version>1.7.2</version>
 		</dependency>
 
 	</dependencies>
