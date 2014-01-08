@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # checker library
-MORPHEXT_HOME=$HOME/Projects/MorphExtensions/bin
-LIB_NAME=morphextensions.jar
+MORPHEXT_HOME=$HOME/Projects/MorphExtensions/target
+LIB_NAME=MorphExtensions-0.0.1-SNAPSHOT.jar
 LIB_PATH=$MORPHEXT_HOME/$LIB_NAME
 
 # classpath setup

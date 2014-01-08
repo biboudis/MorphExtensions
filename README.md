@@ -1,6 +1,4 @@
 Morph Extensions for Java
 =========================
 
-Another test...
 This library introduces class-morphing to Java via (JSR 308) type annotations.
-Test...

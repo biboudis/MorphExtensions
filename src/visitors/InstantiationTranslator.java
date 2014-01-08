@@ -3,7 +3,6 @@ package visitors;
 import javax.annotation.processing.ProcessingEnvironment;
 
 import com.sun.source.util.TreePath;
-import com.sun.tools.javac.code.TypeTag;
 import com.sun.tools.javac.comp.Attr;
 import com.sun.tools.javac.comp.Enter;
 import com.sun.tools.javac.comp.MemberEnter;
@@ -42,9 +41,7 @@ public class InstantiationTranslator extends TreeTranslator {
 	
 	@Override
 	public void visitVarDef(JCVariableDecl tree) {
-		
-		
-		
+
 //	    JCExpression init = null;
 //	    
 //        if (tree.init != null)
