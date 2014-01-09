@@ -12,6 +12,8 @@ import checkers.quals.*;
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ ElementType.TYPE })
 @TypeQualifier
+@SubtypeOf({})
+@DefaultQualifierInHierarchy
 public @interface Morph {
 
 }
