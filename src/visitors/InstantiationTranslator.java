@@ -2,6 +2,9 @@ package visitors;
 
 import javax.annotation.processing.ProcessingEnvironment;
 
+import annotations.Morph;
+import checkers.types.AnnotatedTypeFactory;
+
 import com.sun.source.util.TreePath;
 import com.sun.tools.javac.comp.Attr;
 import com.sun.tools.javac.comp.Enter;
@@ -26,6 +29,7 @@ public class InstantiationTranslator extends TreeTranslator {
 	protected MemberEnter memberEnter;
 	protected TreePath path;
 	protected Attr attr;
+	protected AnnotatedTypeFactory atypeFactory;
 	
 	public InstantiationTranslator(
 			ProcessingEnvironment processingEnv,
@@ -37,33 +41,31 @@ public class InstantiationTranslator extends TreeTranslator {
         enter = Enter.instance(context);
         memberEnter = MemberEnter.instance(context);
         attr = Attr.instance(context);	
+        // atypeFactory = createFactory(path.getCompilationUnit());
+
 	}
 	
 	@Override
 	public void visitVarDef(JCVariableDecl tree) {
 
-//	    JCExpression init = null;
-//	    
-//        if (tree.init != null)
-//            init = maker.Ident(tree.name);
-//        else
-//            init = maker.Literal(TypeTag.BOT, null);
-        
-		JCExpression newType = maker.TypeApply(
-				makeDotExpression("__Logged$Stack"),
-				List.<JCExpression> nil());
-		JCVariableDecl newVarDef = maker.VarDef(tree.mods, tree.name,
-				newType, tree.init);
-		JCExpression newInit = maker.NewClass(null,
-				List.<JCExpression> nil(), newType,
-				List.<JCExpression> nil(), null);
-		newVarDef.init = newInit;
+		/*	
+		JCExpression init = null;
+	    
+        if (tree.init != null)
+            init = maker.Ident(tree.name);
+        else
+            init = maker.Literal(TypeTag.BOT, null);
+        */
 		
-		System.out.println("# Old: \n" + result);
-		System.out.println("# New: \n" + newVarDef);
-		
-		result = newVarDef;
-		
+		if (tree.getType().type.tsym.getAnnotation(Morph.class) != null) {
+			JCExpression newType = makeDotExpression("__Logged$Stack");
+			JCVariableDecl newVarDef = maker.VarDef(tree.mods, tree.name, newType, tree.init);
+			JCExpression newInit = maker.NewClass(null, null, newType, List.<JCExpression> nil(), null);
+			newVarDef.init = newInit;
+			System.out.println("# Old: \n" + tree);
+			System.out.println("# New: \n" + newVarDef);
+			result = newVarDef;
+		}
 		super.visitVarDef(tree);
 	}
 	
