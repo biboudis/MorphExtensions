@@ -49,19 +49,21 @@ public class InstantiationTranslator extends TreeTranslator {
 //        else
 //            init = maker.Literal(TypeTag.BOT, null);
         
-        if (tree.sym.hasTypeAnnotations()) {
-			// Hard coded new type.
-			JCExpression newType = maker.TypeApply(
-					makeDotExpression("__Logged$Stack"),
-					List.<JCExpression> nil());
-			JCVariableDecl newVarDef = maker.VarDef(tree.mods, tree.name,
-					newType, tree.init);
-			JCExpression newInit = maker.NewClass(null,
-					List.<JCExpression> nil(), newType,
-					List.<JCExpression> nil(), null);
-			newVarDef.init = newInit;
-			result = newVarDef;
-		}
+		JCExpression newType = maker.TypeApply(
+				makeDotExpression("__Logged$Stack"),
+				List.<JCExpression> nil());
+		JCVariableDecl newVarDef = maker.VarDef(tree.mods, tree.name,
+				newType, tree.init);
+		JCExpression newInit = maker.NewClass(null,
+				List.<JCExpression> nil(), newType,
+				List.<JCExpression> nil(), null);
+		newVarDef.init = newInit;
+		
+		System.out.println("# Old: \n" + result);
+		System.out.println("# New: \n" + newVarDef);
+		
+		result = newVarDef;
+		
 		super.visitVarDef(tree);
 	}
 	

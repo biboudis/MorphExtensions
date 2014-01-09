@@ -20,12 +20,14 @@ public class Hello {
 		
 		public Logged(T t) { this.instance = t; }
 		
-        /*@for("m", "public R ()") 
+        /*
+        @for("m", "public R ()") 
 		public R <R>m()
 		{
 			System.out.println("Log first");
 			return instance.m();
-		}*/
+		}
+		*/
 	}
 	
 	// Will be this effectively at compile time.
@@ -63,8 +65,10 @@ public class Hello {
 		System.out.println("# Logged Stack Test");
 		Logged<Stack> l_stack = h.new Logged<Stack>(h.new Stack());
 
-		/*		l_stack.push(3);
+		/*
+		l_stack.push(3);
 		System.out.println("Size: " + l_stack.size());
-		l_stack.pop();*/
+		l_stack.pop();
+		*/
 	}
 }
