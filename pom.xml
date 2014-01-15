@@ -1,13 +1,9 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
-
 	<groupId>MorphExtensions</groupId>
-	
 	<artifactId>MorphExtensions</artifactId>
-	
 	<version>0.0.1-SNAPSHOT</version>
-
 	<name>MorphExtensions</name>
 
 	<packaging>jar</packaging>
@@ -17,19 +13,7 @@
 	</properties>
 
 	<build>
-		<sourceDirectory>src</sourceDirectory>
 		<plugins>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-jar-plugin</artifactId>
-				<configuration>
-					<archive>
-						<manifest>
-							<addClasspath>true</addClasspath>
-						</manifest>
-					</archive>
-				</configuration>
-			</plugin>
 			<plugin>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<configuration>
@@ -45,19 +29,6 @@
 				<configuration>
 					<skipTests>true</skipTests>
 				</configuration>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-dependency-plugin</artifactId>
-				<executions> 
-					<execution> 
-						<id>copy-dependencies</id> 
-						<phase>package</phase> 
-						<goals> 
-							<goal>copy-dependencies</goal> 
-						</goals> 
-					</execution> 
-				</executions> 
 			</plugin>
 		</plugins>
 	</build>
@@ -82,24 +53,20 @@
 			<artifactId>junit</artifactId>
 			<version>4.8.1</version>
 		</dependency>
-
 		<dependency>
 			<groupId>types.checkers</groupId>
 			<artifactId>framework</artifactId>
 			<version>1.7.2</version>
 		</dependency>
-
 		<dependency>
 			<groupId>types.checkers</groupId>
 			<artifactId>compiler</artifactId>
 			<version>1.7.2</version>
 		</dependency>
-
 		<dependency>
 			<groupId>types.checkers</groupId>
 			<artifactId>jdk7</artifactId>
 			<version>1.7.2</version>
 		</dependency>
-
 	</dependencies>
 </project>
