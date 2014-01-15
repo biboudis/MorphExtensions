@@ -2,7 +2,7 @@ package checkers;
 
 import javax.lang.model.element.TypeElement;
 
-import visitors.InstantiationTranslator;
+import visitors.ExpansionTranslator;
 import annotations.Morph;
 import checkers.basetype.BaseTypeChecker;
 import checkers.quals.TypeQualifiers;
@@ -22,12 +22,12 @@ public class MorphChecker extends BaseTypeChecker {
 		
 		JCTree tree = (JCTree) path.getCompilationUnit();
 
-		//System.out.println("Translating from:");
-        //System.out.println(tree);
+//		System.out.println("Translating from:");
+//        System.out.println(tree);
 		
-		tree.accept(new InstantiationTranslator(processingEnv, path));
+		tree.accept(new ExpansionTranslator(processingEnv, path));
 		
-		//System.out.println("Translating to:");
-        //System.out.println(tree);
+//		System.out.println("Translating to:");
+//        System.out.println(tree);
 	}
 }

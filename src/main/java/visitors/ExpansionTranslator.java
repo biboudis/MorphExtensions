@@ -6,6 +6,7 @@ import annotations.Morph;
 import checkers.types.AnnotatedTypeFactory;
 
 import com.sun.source.util.TreePath;
+import com.sun.tools.javac.code.Scope;
 import com.sun.tools.javac.comp.Attr;
 import com.sun.tools.javac.comp.Enter;
 import com.sun.tools.javac.comp.MemberEnter;
@@ -15,14 +16,14 @@ import com.sun.tools.javac.tree.JCTree.JCVariableDecl;
 import com.sun.tools.javac.tree.TreeMaker;
 import com.sun.tools.javac.tree.TreeTranslator;
 import com.sun.tools.javac.util.Context;
-import com.sun.tools.javac.util.List;
 import com.sun.tools.javac.util.Names;
 
-public class InstantiationTranslator extends TreeTranslator {
+public class ExpansionTranslator extends TreeTranslator {
 
 	protected static final String SYN_PREFIX = "__";
 	
 	protected Context context;
+	//private Symtab syms;
 	protected TreeMaker maker;
 	protected Names names;
 	protected Enter enter;
@@ -31,45 +32,49 @@ public class InstantiationTranslator extends TreeTranslator {
 	protected Attr attr;
 	protected AnnotatedTypeFactory atypeFactory;
 	
-	public InstantiationTranslator(
+	public ExpansionTranslator(
 			ProcessingEnvironment processingEnv,
 			TreePath path) {
 		
         context = ((JavacProcessingEnvironment) processingEnv).getContext();
+        //syms = Symtab.instance(context);
         maker = TreeMaker.instance(context);
         names = Names.instance(context);
         enter = Enter.instance(context);
         memberEnter = MemberEnter.instance(context);
         attr = Attr.instance(context);	
-        // atypeFactory = createFactory(path.getCompilationUnit());
-
 	}
 	
 	@Override
 	public void visitVarDef(JCVariableDecl tree) {
 
-		/*	
-		JCExpression init = null;
-	    
-        if (tree.init != null)
-            init = maker.Ident(tree.name);
-        else
-            init = maker.Literal(TypeTag.BOT, null);
-        */
+		super.visitVarDef(tree);
 		
 		if (tree.getType().type.tsym.getAnnotation(Morph.class) != null) {
-			JCExpression newType = makeDotExpression("__Logged$Stack");
-			JCVariableDecl newVarDef = maker.VarDef(tree.mods, tree.name, newType, tree.init);
-			JCExpression newInit = maker.NewClass(null, null, newType, List.<JCExpression> nil(), null);
-			newVarDef.init = newInit;
-			System.out.println("# Old: \n" + tree);
-			System.out.println("# New: \n" + newVarDef);
-			result = newVarDef;
+			System.out.println("# Tree stats: \n");
+			System.out.println(tree);
+			System.out.println(tree.getInitializer());
+	
+			//Name dummySyntheticClass = names.fromString("__Logged$Stack");
+			
+			System.out.println(new Scope(tree.sym).lookup(tree.name).isStaticallyImported());
+//			
+//			System.out.println("Is statically imported? " + found.isStaticallyImported());
+//			
+//			JCExpression ident = maker.Ident(dummySyntheticClass).setType(syms.objectType);
+//			
+//			//if (tree.init instanceof JCNewClass)
+//			
+//			JCNewClass newInit = maker.NewClass(null, null, ident, List.<JCExpression> nil(), null);
+//			
+//			JCVariableDecl newVarDef = maker.VarDef(tree.mods, tree.name, ident, newInit);
+//            
+//			System.out.println("# New: \n" + newVarDef);
+			
 		}
-		super.visitVarDef(tree);
 	}
 	
-    public JCExpression makeDotExpression(String chain) {
+	public JCExpression makeDotExpression(String chain) {
         String[] symbols = chain.split("\\.");
         JCExpression node = maker.Ident(names.fromString(symbols[0]));
         for (int i = 1; i < symbols.length; i++) {
