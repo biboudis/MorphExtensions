@@ -11,8 +11,8 @@ import com.sun.tools.javac.comp.Attr;
 import com.sun.tools.javac.comp.Enter;
 import com.sun.tools.javac.comp.MemberEnter;
 import com.sun.tools.javac.processing.JavacProcessingEnvironment;
-import com.sun.tools.javac.tree.JCTree.JCExpression;
-import com.sun.tools.javac.tree.JCTree.JCVariableDecl;
+import com.sun.tools.javac.tree.JCTree.*;
+import com.sun.tools.javac.tree.TreeInfo;
 import com.sun.tools.javac.tree.TreeMaker;
 import com.sun.tools.javac.tree.TreeTranslator;
 import com.sun.tools.javac.util.Context;
@@ -51,13 +51,13 @@ public class ExpansionTranslator extends TreeTranslator {
 		super.visitVarDef(tree);
 		
 		if (tree.getType().type.tsym.getAnnotation(Morph.class) != null) {
-			System.out.println("# Tree stats: \n");
-			System.out.println(tree);
-			System.out.println(tree.getInitializer());
-	
-			//Name dummySyntheticClass = names.fromString("__Logged$Stack");
+			System.out.println("# Tree:");
 			
-			System.out.println(new Scope(tree.sym).lookup(tree.name).isStaticallyImported());
+			System.out.println(tree.getInitializer().type.tsym.isStatic());
+	
+//			Name dummySyntheticClass = names.fromString("__Logged$Stack");
+//			
+//			System.out.println(new Scope(tree.sym).lookup(tree.name).isStaticallyImported());
 //			
 //			System.out.println("Is statically imported? " + found.isStaticallyImported());
 //			

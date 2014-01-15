@@ -3,7 +3,7 @@ import annotations.*;
 
 public class Hello {
 	
-	public class Stack {
+	public static class Stack {
 	    private LinkedList<Object> list = new LinkedList<Object>();
 	    public void push(Object item) {list.addFirst(item);}
 	    public Object pop() {return list.removeFirst();}
@@ -14,7 +14,7 @@ public class Hello {
 	
 	// This will be declared as a @Morph class.
 	@Morph
-	public class Logged<T> {
+	public static class Logged<T> {
 		
 		T instance;
 		
@@ -35,7 +35,7 @@ public class Hello {
 	// 2. Generic type is substituted with concrete type.
 	// 3. Expanded static for method declarations.
 	
-	public class __Logged$Stack {
+	public static class __Logged$Stack {
 		
 		Stack instance;
 		
@@ -53,17 +53,16 @@ public class Hello {
 	}
 	
 	public static void main(String[] args) {
-		Hello h = new Hello();
 		
 		System.out.println("# Stack Test");	
-		Stack stack = h.new Stack();
+		Hello.Stack stack = new Hello.Stack();
 		
 		stack.push(3);
 		System.out.println("Size: " + stack.size());
 		stack.pop();
 		
 		System.out.println("# Logged Stack Test");
-		Logged<Stack> l_stack = h.new Logged<Stack>(h.new Stack());
+		Hello.Logged<Hello.Stack> l_stack = new Hello.Logged<Hello.Stack>(new Hello.Stack());
 
 		/*
 		l_stack.push(3);
