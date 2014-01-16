@@ -53,18 +53,12 @@ public class ExpansionTranslator extends TreeTranslator {
         rs = Resolve.instance(context);
         memberEnter = MemberEnter.instance(context);
         attr = Attr.instance(context);	
-        
-        context.dump();
 	}
 	
 	@Override
 	public void visitVarDef(JCVariableDecl tree) {
-
-		super.visitVarDef(tree);
 		
 		if (tree.getType().type.tsym.getAnnotation(Morph.class) != null) {
-			
-			System.out.println("# tree: " + tree);
 			
 			if (tree.init.getTag() == Tag.NEWCLASS)
 			{
@@ -72,37 +66,20 @@ public class ExpansionTranslator extends TreeTranslator {
 				
 				Name dummyName = names.fromString("__Logged$Stack");
 				
-				Type clazz = new Scope(tree.sym).lookup(dummyName).sym.type;
+				Type clazz = tree.sym.enclClass().members().lookup(dummyName).sym.type;
 				
 				JCNewClass newClassExpression = make.NewClass(null, null,  make.QualIdent(clazz.tsym), oldInitializerList, null);
 				
-				System.out.println("# newClassExpression: " + newClassExpression);
-				
 				JCVariableDecl newVarDef = make.VarDef(tree.mods, tree.name, make.QualIdent(clazz.tsym), newClassExpression);
 				
-				System.out.println("# newVarDef: " + newVarDef);
+				System.out.println("# old var decl: " + tree);
+				System.out.println("# new var decl: " + newVarDef);
 				
 				result = newVarDef;
 			}
-			
-
-//			Name dummySyntheticClass = names.fromString("__Logged$Stack");
-//			
-//			System.out.println(new Scope(tree.sym).lookup(tree.name).isStaticallyImported());
-//			
-//			System.out.println("Is statically imported? " + found.isStaticallyImported());
-//			
-//			JCExpression ident = maker.Ident(dummySyntheticClass).setType(syms.objectType);
-//			
-//			//if (tree.init instanceof JCNewClass)
-//			
-//			JCNewClass newInit = maker.NewClass(null, null, ident, List.<JCExpression> nil(), null);
-//			
-//			JCVariableDecl newVarDef = maker.VarDef(tree.mods, tree.name, ident, newInit);
-//            
-//			System.out.println("# New: \n" + newVarDef);
-			
 		}
+		
+		super.visitVarDef(tree);
 	}
 		
 	public JCExpression makeDotExpression(String chain) {
