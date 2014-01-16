@@ -58,6 +58,8 @@ public class ExpansionTranslator extends TreeTranslator {
 	@Override
 	public void visitVarDef(JCVariableDecl tree) {
 		
+		super.visitVarDef(tree);
+		
 		if (tree.getType().type.tsym.getAnnotation(Morph.class) != null) {
 			
 			if (tree.init.getTag() == Tag.NEWCLASS)
@@ -73,13 +75,13 @@ public class ExpansionTranslator extends TreeTranslator {
 				JCVariableDecl newVarDef = make.VarDef(tree.mods, tree.name, make.QualIdent(clazz.tsym), newClassExpression);
 				
 				System.out.println("# old var decl: " + tree);
+				
 				System.out.println("# new var decl: " + newVarDef);
 				
 				result = newVarDef;
 			}
 		}
 		
-		super.visitVarDef(tree);
 	}
 		
 	public JCExpression makeDotExpression(String chain) {
