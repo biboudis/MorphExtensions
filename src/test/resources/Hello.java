@@ -56,18 +56,12 @@ public class Hello {
 		
 		System.out.println("# Stack Test");	
 		Hello.Stack stack = new Hello.Stack();
-		
-		stack.push(3);
-		System.out.println("Size: " + stack.size());
-		stack.pop();
+
+		stack.peek();
 		
 		System.out.println("# Logged Stack Test");
 		Hello.Logged<Hello.Stack> l_stack = new Hello.Logged<Hello.Stack>(new Hello.Stack());
 
-		/*
-		l_stack.push(3);
-		System.out.println("Size: " + l_stack.size());
-		l_stack.pop();
-		*/
+		l_stack.peek();
 	}
 }

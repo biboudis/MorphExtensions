@@ -27,24 +27,23 @@ import com.sun.tools.javac.util.Names;
 
 public class ExpansionTranslator extends TreeTranslator {
 
-	protected static final String SYN_PREFIX = "__";
-	
-	protected Context context;
-	private Symtab syms;
-	protected TreeMaker make;
-	protected Names names;
-	protected Enter enter;
-    private Resolve rs;
-	protected MemberEnter memberEnter;
-	protected TreePath path;
-	protected Attr attr;
-	
-	protected AnnotatedTypeFactory atypeFactory;
-	
-	public ExpansionTranslator(
-			ProcessingEnvironment processingEnv,
-			TreePath path) {
-		
+    protected static final String SYN_PREFIX = "__";
+    
+    protected Context context;
+    private   Symtab syms;
+    protected TreeMaker make;
+    protected Names names;
+    protected Enter enter;
+    private   Resolve rs;
+    protected MemberEnter memberEnter;
+    protected TreePath path;
+    protected Attr attr;
+    protected AnnotatedTypeFactory atypeFactory;
+    
+    public ExpansionTranslator(
+      ProcessingEnvironment processingEnv,
+      TreePath path) {
+      
         context = ((JavacProcessingEnvironment) processingEnv).getContext();
         syms = Symtab.instance(context);
         make = TreeMaker.instance(context);
@@ -53,42 +52,47 @@ public class ExpansionTranslator extends TreeTranslator {
         rs = Resolve.instance(context);
         memberEnter = MemberEnter.instance(context);
         attr = Attr.instance(context);	
-	}
-	
-	@Override
-	public void visitVarDef(JCVariableDecl tree) {
-		
-		if (tree.getType().type.tsym.getAnnotation(Morph.class) != null) {
-			
-			if (tree.init.getTag() == Tag.NEWCLASS)
-			{
-				List<JCExpression> oldInitializerList = ((JCNewClass) tree.init).args;
-				
-				Name dummyName = names.fromString("__Logged$Stack");
-				
-				Type clazz = tree.sym.enclClass().members().lookup(dummyName).sym.type;
-				
-				JCNewClass newClassExpression = make.NewClass(null, null,  make.QualIdent(clazz.tsym), oldInitializerList, null);
-				
-				JCVariableDecl newVarDef = make.VarDef(tree.mods, tree.name, make.QualIdent(clazz.tsym), newClassExpression);
-				
-				System.out.println("# old var decl: " + tree);
-				System.out.println("# new var decl: " + newVarDef);
-				
-				result = newVarDef;
-			}
-		}
-		
-		super.visitVarDef(tree);
-	}
-		
-	public JCExpression makeDotExpression(String chain) {
-        String[] symbols = chain.split("\\.");
-        JCExpression node = make.Ident(names.fromString(symbols[0]));
-        for (int i = 1; i < symbols.length; i++) {
-            com.sun.tools.javac.util.Name nextName = names.fromString(symbols[i]);
-            node = make.Select(node, nextName);
-        }
-        return node;
     }
+    
+    @Override
+    public void visitVarDef(JCVariableDecl tree) {
+      
+       if (tree.getType().type.tsym.getAnnotation(Morph.class) != null) {
+         
+           if (tree.init.getTag() == Tag.NEWCLASS)
+           {
+              List<JCExpression> oldInitializerList = ((JCNewClass) tree.init).args;
+              
+              Name dummyName = names.fromString("__Logged$Stack");
+              
+              Type clazz = tree.sym.enclClass().members().lookup(dummyName).sym.type;
+              
+              JCNewClass newClassExpression = make.NewClass(null, null,  make.QualIdent(clazz.tsym), oldInitializerList, null);
+              
+              JCVariableDecl newVarDef = make.VarDef(tree.mods, tree.name, make.QualIdent(clazz.tsym), newClassExpression);
+              
+              System.out.println("# old var decl: " + tree);
+              
+              System.out.println("# new var decl: " + newVarDef);
+              
+              Env<AttrContext> env;
+
+              //env = enter.get
+
+              result = newVarDef;
+          }
+      }
+      
+      super.visitVarDef(tree);
+  }
+  
+  public JCExpression makeDotExpression(String chain) {
+    String[] symbols = chain.split("\\.");
+    JCExpression node = make.Ident(names.fromString(symbols[0]));
+    for (int i = 1; i < symbols.length; i++) {
+        com.sun.tools.javac.util.Name nextName = names.fromString(symbols[i]);
+        node = make.Select(node, nextName);
+    }
+    return node;
+}
 }
