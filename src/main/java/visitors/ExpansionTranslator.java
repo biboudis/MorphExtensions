@@ -82,18 +82,20 @@ public class ExpansionTranslator extends TreeTranslator {
             	
             	System.out.println("# The environment of the block: " + env.info);
             	
+            	System.out.println("# old var decl: " + stat);
+            	
             	JCVariableDecl syntheticStat = replaceWithSynthetic((JCVariableDecl) stat);
-            	
-            	System.out.println("# Transformed it in: " + syntheticStat);
-            	
+
+            	System.out.println("# new var decl: " + syntheticStat);
+
             	int oldErrors = log.nerrors;
                 log.nerrors = 100; 
             	
-                Type type = attr.attribStat(syntheticStat, env); 
+                //Type type = attr.attribStat(syntheticStat, env); 
             	
                 log.nerrors = oldErrors;
             	
-            	System.out.println("# Type is: " + type);
+            	//System.out.println("# Type is: " + type);
             	
 				stats = stats.tail;
 			}
@@ -117,47 +119,20 @@ public class ExpansionTranslator extends TreeTranslator {
 	}
 
 	private JCVariableDecl replaceWithSynthetic(JCVariableDecl tree) {
-/*		if (tree.init.getTag() == Tag.NEWCLASS)
-		{*/
-			List<JCExpression> oldInitializerList = ((JCNewClass) tree.init).args;
-			
-			Name dummyName = names.fromString("__Logged$Stack");
-			
-			Type clazz = tree.sym.enclClass().members().lookup(dummyName).sym.type;
-			
-			JCNewClass newClassExpression = make.NewClass(null, null,  make.QualIdent(clazz.tsym), oldInitializerList, null);
-			
-			JCVariableDecl newVarDef = make.VarDef(tree.mods, tree.name, make.QualIdent(clazz.tsym), newClassExpression);
-			
-			System.out.println("# old var decl: " + tree);
-			System.out.println("# new var decl: " + newVarDef);
-			
-/*				VarSymbol varSymbol = tree.sym; //l_stack
-			
-			// Env<AttrContext> localEnv = enter.getEnv(tree.type.tsym);
-			Env<AttrContext> env = enter.getEnv(tree.type.tsym); // Must be the environment of Hello.
-			
-			//memberEnter.visitVarDef(newVarDef);
-			
-			// I need the method environment. How to find it?
-			if(tree.sym.owner.kind == MTH) {
-				System.out.println("The owner is method: " + env.enclMethod);
-				// env = memberEnter.getMethodEnv(env.enclMethod, env);
-			}
-			
-			System.out.println("Kind of the owner symbol: " + tree.sym.owner.getKind());
-			System.out.println("tree.type.tsym: " + tree.type.tsym); // Hello.Logged
-			System.out.println("tree.sym.type: " + tree.sym); //l_stack
-			System.out.println("tree.sym: " + tree.sym); //l_Stack
-			
-			System.out.println(env.info);
-			System.out.println(env.enclMethod);
-			
-			// Env<AttrContext> newEnv = localEnv.info.dup(tree);
-		
-			// attr.attribStat(newVarDef, newEnv);
-*/				
-			return newVarDef;
+
+		List<JCExpression> oldInitializerList = ((JCNewClass) tree.init).args;
+
+		Name dummyName = names.fromString("__Logged$Stack");
+
+		Type clazz = tree.sym.enclClass().members().lookup(dummyName).sym.type;
+
+		JCNewClass newClassExpression = make.NewClass(null, null,
+				make.QualIdent(clazz.tsym), oldInitializerList, null);
+
+		JCVariableDecl newVarDef = make.VarDef(tree.mods, tree.name,
+				make.QualIdent(clazz.tsym), newClassExpression);
+
+		return newVarDef;
 	}
 	
 	private boolean isMorphedVariableDeclaration(JCTree tree){
