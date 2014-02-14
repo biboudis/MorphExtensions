@@ -1,5 +1,8 @@
 package visitors;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+
 import javax.annotation.processing.ProcessingEnvironment;
 
 import annotations.Morph;
@@ -85,10 +88,6 @@ public class ExpansionTranslator extends TreeTranslator {
             	printSymbolInfo(varDecl.sym);
             	
             	Env<AttrContext> env = enter.getEnv(varDecl.type.tsym);
-            	
-            	System.out.println(env);
-            	
-            	// Env<AttrContext> localEnv = memberEnter.getMethodEnv(varDecl.sym.owner, env);
            	
             	System.out.println("# old var decl: " + stat);
             	
@@ -96,18 +95,15 @@ public class ExpansionTranslator extends TreeTranslator {
 
             	spliceNode(stats, stat, syntheticStat);
             	
-            	System.out.println(stats.toString());
+            	enterMember(syntheticStat, env);
             	
-            	int oldErrors = log.nerrors;
-                log.nerrors = 100; 
+            	System.out.println(" new var decl: " + stats.toString());
             	
-                attr.attribExpr(syntheticStat, env);                
-                
-                log.nerrors = oldErrors;
+                attr.attribStat(syntheticStat, env);
                 
             	printSymbolInfo(syntheticStat.sym);
 				
-            	stats = stats.tail;
+            	// stats = stats.tail;
 			}
         }
         
@@ -127,8 +123,29 @@ public class ExpansionTranslator extends TreeTranslator {
 		}
 	}
 	
+	// Inspired by EnerJ
+    public void enterMember(JCTree member, Env<AttrContext> env) {
+        Method meth = null;
+        try {
+            meth = MemberEnter.class.getDeclaredMethod("memberEnter", JCTree.class, Env.class);
+        } catch (NoSuchMethodException e) {
+            System.out.println("raised only if compiler internal api changes");
+        }
+        meth.setAccessible(true);
+        Object[] args = {member, env};
+        try {
+            meth.invoke(memberEnter, args);
+        } catch (IllegalAccessException e) {
+            System.out.println("raised only if compiler internal api changes");
+        } catch (InvocationTargetException e) {
+            System.out.println("raised only if compiler internal api changes");
+        }
+    }
+	
 	private void spliceNode (List<JCStatement> statementList, JCStatement oldNode, JCStatement newNode){
-        statementList.intersect(List.<JCStatement>of(newNode));
+		List<JCTree.JCStatement> newList = List.<JCTree.JCStatement>of(newNode);
+        newList.tail = statementList.tail;
+        statementList.tail = newList;
     }
 	
 	private void printSymbolInfo(Symbol sym){
