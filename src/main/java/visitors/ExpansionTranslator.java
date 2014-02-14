@@ -11,6 +11,7 @@ import com.sun.tools.javac.code.Scope;
 import com.sun.tools.javac.comp.AttrContext;
 import com.sun.tools.javac.comp.Enter;
 import com.sun.tools.javac.comp.Env;
+import com.sun.tools.javac.code.Symbol;
 import com.sun.tools.javac.code.Symbol.ClassSymbol;
 import com.sun.tools.javac.code.Symbol.MethodSymbol;
 import com.sun.tools.javac.code.Symbol.VarSymbol;
@@ -25,6 +26,7 @@ import com.sun.tools.javac.tree.JCTree;
 import com.sun.tools.javac.tree.JCTree.JCBlock;
 import com.sun.tools.javac.tree.JCTree.JCCompilationUnit;
 import com.sun.tools.javac.tree.JCTree.JCExpression;
+import com.sun.tools.javac.tree.JCTree.JCStatement;
 import com.sun.tools.javac.tree.TreeInfo;
 import com.sun.tools.javac.tree.TreeMaker;
 import com.sun.tools.javac.tree.TreeTranslator;
@@ -76,28 +78,36 @@ public class ExpansionTranslator extends TreeTranslator {
             JCStatement stat = stats.head;
             
             if (isMorphedVariableDeclaration(stat)) {
-            	Env<AttrContext> env = enter.getEnv(stat.type.tsym);
-
             	System.out.println("# Found a morphed variable declaration: " + stat);
+
+            	JCVariableDecl varDecl = (JCVariableDecl) stat;
             	
-            	System.out.println("# The environment of the block: " + env.info);
+            	printSymbolInfo(varDecl.sym);
             	
+            	Env<AttrContext> env = enter.getEnv(varDecl.type.tsym);
+            	
+            	System.out.println(env);
+            	
+            	// Env<AttrContext> localEnv = memberEnter.getMethodEnv(varDecl.sym.owner, env);
+           	
             	System.out.println("# old var decl: " + stat);
             	
             	JCVariableDecl syntheticStat = replaceWithSynthetic((JCVariableDecl) stat);
 
-            	System.out.println("# new var decl: " + syntheticStat);
-
+            	spliceNode(stats, stat, syntheticStat);
+            	
+            	System.out.println(stats.toString());
+            	
             	int oldErrors = log.nerrors;
                 log.nerrors = 100; 
             	
-                //Type type = attr.attribStat(syntheticStat, env); 
-            	
+                attr.attribExpr(syntheticStat, env);                
+                
                 log.nerrors = oldErrors;
-            	
-            	//System.out.println("# Type is: " + type);
-            	
-				stats = stats.tail;
+                
+            	printSymbolInfo(syntheticStat.sym);
+				
+            	stats = stats.tail;
 			}
         }
         
@@ -105,7 +115,7 @@ public class ExpansionTranslator extends TreeTranslator {
 		
         super.visitBlock(tree);
 	}
-
+	
 	@Override
 	public void visitVarDef(JCVariableDecl tree) {
 		
@@ -115,7 +125,25 @@ public class ExpansionTranslator extends TreeTranslator {
 			
 			replaceWithSynthetic(tree);
 		}
-		
+	}
+	
+	private void spliceNode (List<JCStatement> statementList, JCStatement oldNode, JCStatement newNode){
+        statementList.intersect(List.<JCStatement>of(newNode));
+    }
+	
+	private void printSymbolInfo(Symbol sym){
+    	System.out.println("# Symbol: " + sym);
+    	
+    	if (sym != null) {
+    		System.out.println("\tKind: " + sym.getKind());
+			System.out.println("\tType: " + sym.type);
+			System.out.println("\tMembers: " + sym.members());
+			System.out.println("\tOwner: " + sym.owner);
+			System.out.println("\tOwner Kind: " + sym.owner.getKind());
+			System.out.println("\tLocation: " + sym.location());
+			System.out.println("\tMembers " + sym.members());
+			System.out.println("\tMembers of Owner: " + sym.owner.members());
+		}
 	}
 
 	private JCVariableDecl replaceWithSynthetic(JCVariableDecl tree) {
