@@ -14,6 +14,7 @@ import com.sun.tools.javac.code.Scope;
 import com.sun.tools.javac.comp.AttrContext;
 import com.sun.tools.javac.comp.Enter;
 import com.sun.tools.javac.comp.Env;
+import com.sun.tools.javac.code.Scope.Entry;
 import com.sun.tools.javac.code.Symbol;
 import com.sun.tools.javac.code.Symbol.ClassSymbol;
 import com.sun.tools.javac.code.Symbol.MethodSymbol;
@@ -89,18 +90,14 @@ public class ExpansionTranslator extends TreeTranslator {
             	
             	Env<AttrContext> env = enter.getEnv(varDecl.type.tsym);
            	
-            	System.out.println("# old var decl: " + varDecl);
-            	
             	makeExpandedVarDeclaration(varDecl);
-      	
-            	System.out.println("# new var decl: " + varDecl);
+            	
+            	Scope s = varDecl.sym.members();
+            	
+            	printScopeInfo(s);
             	
             	printEnvInfo(env);
-            	
-                attr.attribStat(stat, env);
-                
-                printEnvInfo(env);
-                
+                               
             	printSymbolInfo(varDecl.sym);
 			}
         }
@@ -109,7 +106,7 @@ public class ExpansionTranslator extends TreeTranslator {
 		
         super.visitBlock(tree);
 	}
-	
+
 	@Override
 	public void visitVarDef(JCVariableDecl tree) {
 		
@@ -150,14 +147,19 @@ public class ExpansionTranslator extends TreeTranslator {
     	System.out.println("# Symbol: " + sym);
     	
     	if (sym != null) {
-    		System.out.println("\tKind: " + sym.getKind());
-			System.out.println("\tType: " + sym.type);
-			System.out.println("\tMembers: " + sym.members());
-			System.out.println("\tOwner: " + sym.owner);
-			System.out.println("\tOwner Kind: " + sym.owner.getKind());
-			System.out.println("\tLocation: " + sym.location());
-			System.out.println("\tMembers " + sym.members());
-			System.out.println("\tMembers of Owner: " + sym.owner.members());
+    		System.out.println("\tKind: " 				+ sym.getKind());
+			System.out.println("\tType: " 				+ sym.type);
+			System.out.println("\tBase Symbol: "		+ sym.baseSymbol());
+			System.out.println("\tOutermost class: "	+ sym.outermostClass());
+			System.out.println("\tEnclosing element: "	+ sym.getEnclosingElement());
+			System.out.println("\tLocation: " 			+ sym.location());
+			System.out.println("\tMembers " 			+ sym.members());
+			
+			System.out.println("\tOwner: " 				+ sym.owner);
+			System.out.println("\t\tKind: " 			+ sym.owner.getKind());
+			System.out.println("\t\tMembers: " 			+ sym.owner.members());
+		} else { 
+			System.out.println("Symbol is null.");
 		}
 	}
 
@@ -165,6 +167,17 @@ public class ExpansionTranslator extends TreeTranslator {
 		if (env != null) {
 			System.out.println("# env: " + env);
 			System.out.println("# enclosing method: " + env.enclMethod);
+		} else { 
+			System.out.println("Environment is null.");
+		}
+	}
+
+	private void printScopeInfo(Scope s) {
+		if (s != null) {
+			System.out.println("# scope: " + s);
+			System.out.println("#\telements: " + s.elems);
+		} else { 
+			System.out.println("Scope is null.");
 		}
 	}
 	

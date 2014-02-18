@@ -20,6 +20,7 @@
 					<showWarnings>true</showWarnings>
 					<source>1.7</source>
 					<target>1.7</target>
+					<compilerArgument>-verbose -g -XprintRounds</compilerArgument>
 				</configuration>
 			</plugin>
 			<plugin>
