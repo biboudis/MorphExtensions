@@ -89,25 +89,23 @@ public class ExpansionTranslator extends TreeTranslator {
             	
             	Env<AttrContext> env = enter.getEnv(varDecl.type.tsym);
            	
-            	System.out.println("# old var decl: " + stat);
+            	System.out.println("# old var decl: " + varDecl);
             	
-            	JCVariableDecl syntheticStat = replaceWithSynthetic((JCVariableDecl) stat);
-
-            	spliceNode(stats, stat, syntheticStat);
+            	makeExpandedVarDeclaration(varDecl);
+      	
+            	System.out.println("# new var decl: " + varDecl);
             	
-            	enterMember(syntheticStat, env);
+            	printEnvInfo(env);
             	
-            	System.out.println(" new var decl: " + stats.toString());
-            	
-                attr.attribStat(syntheticStat, env);
+                attr.attribStat(stat, env);
                 
-            	printSymbolInfo(syntheticStat.sym);
-				
-            	// stats = stats.tail;
+                printEnvInfo(env);
+                
+            	printSymbolInfo(varDecl.sym);
 			}
         }
         
-        System.out.println("# end");
+        System.out.println("# end: \n" + tree);
 		
         super.visitBlock(tree);
 	}
@@ -119,7 +117,7 @@ public class ExpansionTranslator extends TreeTranslator {
 		
 		if (isMorphedVariableDeclaration(tree)) {
 			
-			replaceWithSynthetic(tree);
+			makeExpandedVarDeclaration(tree);
 		}
 	}
 	
@@ -163,21 +161,29 @@ public class ExpansionTranslator extends TreeTranslator {
 		}
 	}
 
-	private JCVariableDecl replaceWithSynthetic(JCVariableDecl tree) {
+	private void printEnvInfo(Env<?> env) {
+		if (env != null) {
+			System.out.println("# env: " + env);
+			System.out.println("# enclosing method: " + env.enclMethod);
+		}
+	}
+	
+	private void makeExpandedVarDeclaration(JCVariableDecl tree) {
 
 		List<JCExpression> oldInitializerList = ((JCNewClass) tree.init).args;
 
-		Name dummyName = names.fromString("__Logged$Stack");
+		Name expandedClassName = names.fromString("__Logged$Stack");
 
-		Type clazz = tree.sym.enclClass().members().lookup(dummyName).sym.type;
+		Type expandedClassType = tree.sym.enclClass().members().lookup(expandedClassName).sym.type;
 
-		JCNewClass newClassExpression = make.NewClass(null, null,
-				make.QualIdent(clazz.tsym), oldInitializerList, null);
-
-		JCVariableDecl newVarDef = make.VarDef(tree.mods, tree.name,
-				make.QualIdent(clazz.tsym), newClassExpression);
-
-		return newVarDef;
+		JCNewClass initExpression = make.NewClass(null, null,
+				make.QualIdent(expandedClassType.tsym), oldInitializerList, null);
+		
+		tree.vartype = make.QualIdent(expandedClassType.tsym);
+		tree.setType(expandedClassType);
+		tree.init = initExpression;
+		tree.sym.type = expandedClassType;
+	
 	}
 	
 	private boolean isMorphedVariableDeclaration(JCTree tree){
