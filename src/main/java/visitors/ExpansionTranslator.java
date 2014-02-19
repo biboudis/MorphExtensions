@@ -73,8 +73,21 @@ public class ExpansionTranslator extends TreeTranslator {
         log = Log.instance(context);
 	}
 	
+	Env<AttrContext> env;
+	
+	@Override
+	public void visitMethodDef(JCMethodDecl tree) {
+		env = memberEnter.getMethodEnv(tree, enter.getClassEnv(tree.sym.enclClass()));
+		
+		super.visitMethodDef(tree);
+	}
+	
 	@Override
 	public void visitBlock(JCBlock tree) {
+		
+		int oldErrors = log.nerrors;
+        log.nerrors = 100; // MaxErrors now has protected access.
+        
 		System.out.println("# visitBlock: \n" + tree);
 		List<JCStatement> stats;
         
@@ -88,22 +101,20 @@ public class ExpansionTranslator extends TreeTranslator {
             	
             	printSymbolInfo(varDecl.sym);
             	
-            	Env<AttrContext> env = enter.getEnv(varDecl.type.tsym);
+            	printEnvInfo(env);
            	
             	makeExpandedVarDeclaration(varDecl);
             	
-            	Scope s = varDecl.sym.members();
+            	enterMember(varDecl, env);
             	
-            	printScopeInfo(s);
-            	
-            	printEnvInfo(env);
-                               
+            	printScopeInfo(varDecl.sym.members());
             	printSymbolInfo(varDecl.sym);
 			}
         }
         
         System.out.println("# end: \n" + tree);
-		
+        
+        log.nerrors = oldErrors;
         super.visitBlock(tree);
 	}
 
@@ -113,7 +124,6 @@ public class ExpansionTranslator extends TreeTranslator {
 		super.visitVarDef(tree);
 		
 		if (isMorphedVariableDeclaration(tree)) {
-			
 			makeExpandedVarDeclaration(tree);
 		}
 	}
