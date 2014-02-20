@@ -1,6 +1,10 @@
 package checkers;
 
+import java.io.IOException;
+import java.io.Writer;
+
 import javax.lang.model.element.TypeElement;
+import javax.tools.JavaFileObject;
 
 import visitors.ExpansionTranslator;
 import annotations.Morph;
@@ -20,10 +24,21 @@ public class MorphChecker extends BaseTypeChecker {
 		// instantiated.
 		super.typeProcess(elem, path);
 		
+		System.out.println(elem.toString());
+		
 		JCTree tree = (JCTree) path.getCompilationUnit();
 
 //		System.out.println("Translating from:");
 //        System.out.println(tree);
+		
+		try {
+			JavaFileObject jfo = processingEnv.getFiler().createSourceFile(elem.getQualifiedName() + "Gen.java");
+			Writer out = jfo.openWriter();
+            out.write("class Gen { }");
+            out.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}	
 		
 		tree.accept(new ExpansionTranslator(processingEnv, path));
 	

@@ -1,10 +1,14 @@
 package visitors;
 
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.io.Writer;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.tools.DiagnosticListener;
+import javax.tools.JavaFileObject;
 
 import annotations.Morph;
 import checkers.types.AnnotatedTypeFactory;
@@ -47,11 +51,13 @@ public class ExpansionTranslator extends TreeTranslator {
 	protected static final String SYN_PREFIX = "__";
 
 	protected Context context;
+	protected ProcessingEnvironment processingEnv;
+	
 	private Symtab syms;
 	protected TreeMaker make;
 	protected Names names;
-	protected Enter enter;
 	private Resolve rs;
+	protected Enter enter;
 	protected MemberEnter memberEnter;
 	protected TreePath path;
 	protected Attr attr;
@@ -61,8 +67,8 @@ public class ExpansionTranslator extends TreeTranslator {
 
 	public ExpansionTranslator(ProcessingEnvironment processingEnv,
 			TreePath path) {
-
-		context = ((JavacProcessingEnvironment) processingEnv).getContext();
+		this.processingEnv = processingEnv;
+		context = ((JavacProcessingEnvironment) this.processingEnv).getContext();
 		syms = Symtab.instance(context);
 		make = TreeMaker.instance(context);
 		names = Names.instance(context);
@@ -85,7 +91,7 @@ public class ExpansionTranslator extends TreeTranslator {
 
 	@Override
 	public void visitBlock(JCBlock tree) {
-
+		
 		System.out.println("# visitBlock: \n" + tree);
 		List<JCStatement> stats;
 
@@ -93,9 +99,10 @@ public class ExpansionTranslator extends TreeTranslator {
 			JCStatement stat = stats.head;
 
 			if (isMorphedVariableDeclaration(stat)) {
+			
 				System.out.println("# Found a morphed variable declaration: "
 						+ stat);
-
+				
 				JCVariableDecl varDecl = (JCVariableDecl) stat;
 
 				printSymbolInfo(varDecl.sym);
@@ -203,10 +210,11 @@ public class ExpansionTranslator extends TreeTranslator {
 		Type expandedClassType = tree.sym.enclClass().members()
 				.lookup(expandedClassName).sym.type;
 
-		JCNewClass initExpression = make.NewClass(null, null, 
-				make.Select(
-						make.Ident(tree.sym.enclClass().name), expandedClassName), 
-			    oldInitializerList, null);
+		JCNewClass initExpression = make.NewClass(null, 
+				null, 
+				make.Select(make.Ident(tree.sym.enclClass().name), expandedClassName), 
+				oldInitializerList, 
+				null);
 
 		tree.vartype = make.Select(
 				make.Ident(tree.sym.enclClass().name), expandedClassName);
