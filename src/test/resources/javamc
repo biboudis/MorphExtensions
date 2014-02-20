@@ -50,7 +50,7 @@ while [ "$1" != "" ]; do
     esac
 done
 
-COMMAND="javac -Xbootclasspath/p:$LIB_PATH:$CHECKER_CP -processorpath $LIB_PATH:$CHECKER_CP -processor $ENABLED_CHECKERS $INPUT_FILES"
+COMMAND="javac -verbose -Xbootclasspath/p:$LIB_PATH:$CHECKER_CP -processorpath $LIB_PATH:$CHECKER_CP -processor $ENABLED_CHECKERS $INPUT_FILES"
 
 if $WHATIF
 then
