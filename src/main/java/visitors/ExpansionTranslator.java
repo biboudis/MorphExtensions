@@ -8,8 +8,10 @@ import com.sun.tools.javac.processing.JavacProcessingEnvironment;
 
 import annotations.Morph;
 import checkers.types.AnnotatedTypeFactory;
-
+import com.sun.tools.javac.api.JavacTaskImpl;
 import com.sun.source.tree.Tree.Kind;
+import com.sun.source.util.JavacTask;
+import com.sun.source.util.TaskEvent;
 import com.sun.source.util.TreePath;
 import com.sun.tools.javac.code.Scope;
 import com.sun.tools.javac.code.Symbol;
@@ -36,6 +38,7 @@ import com.sun.tools.javac.util.List;
 import com.sun.tools.javac.util.Log;
 import com.sun.tools.javac.util.Name;
 import com.sun.tools.javac.util.Names;
+import com.sun.tools.javac.api.BasicJavacTask;
 
 public class ExpansionTranslator extends TreeTranslator {
 
@@ -52,8 +55,8 @@ public class ExpansionTranslator extends TreeTranslator {
 	protected Attr attr;
 	protected Log log;
 
-	public ExpansionTranslator(ProcessingEnvironment processingEnv) {
-		context = ((JavacProcessingEnvironment) this.processingEnv).getContext();
+	public ExpansionTranslator(JavacTask task) {
+		context = ((BasicJavacTask) task).getContext();
 		make = TreeMaker.instance(context);
 		names = Names.instance(context);
 		enter = Enter.instance(context);
