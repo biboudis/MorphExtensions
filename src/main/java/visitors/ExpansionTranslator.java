@@ -1,14 +1,10 @@
 package visitors;
 
-import java.io.BufferedWriter;
-import java.io.IOException;
-import java.io.Writer;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 import javax.annotation.processing.ProcessingEnvironment;
-import javax.tools.DiagnosticListener;
-import javax.tools.JavaFileObject;
+import com.sun.tools.javac.processing.JavacProcessingEnvironment;
 
 import annotations.Morph;
 import checkers.types.AnnotatedTypeFactory;
@@ -16,27 +12,23 @@ import checkers.types.AnnotatedTypeFactory;
 import com.sun.source.tree.Tree.Kind;
 import com.sun.source.util.TreePath;
 import com.sun.tools.javac.code.Scope;
-import com.sun.tools.javac.comp.AttrContext;
-import com.sun.tools.javac.comp.Enter;
-import com.sun.tools.javac.comp.Env;
-import com.sun.tools.javac.code.Scope.Entry;
 import com.sun.tools.javac.code.Symbol;
-import com.sun.tools.javac.code.Symbol.ClassSymbol;
-import com.sun.tools.javac.code.Symbol.MethodSymbol;
-import com.sun.tools.javac.code.Symbol.VarSymbol;
 import com.sun.tools.javac.code.Symtab;
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.comp.Attr;
+import com.sun.tools.javac.comp.AttrContext;
+import com.sun.tools.javac.comp.Enter;
+import com.sun.tools.javac.comp.Env;
 import com.sun.tools.javac.comp.MemberEnter;
 import com.sun.tools.javac.comp.Resolve;
-import com.sun.tools.javac.processing.JavacProcessingEnvironment;
-import com.sun.tools.javac.tree.JCTree.*;
 import com.sun.tools.javac.tree.JCTree;
 import com.sun.tools.javac.tree.JCTree.JCBlock;
 import com.sun.tools.javac.tree.JCTree.JCCompilationUnit;
 import com.sun.tools.javac.tree.JCTree.JCExpression;
+import com.sun.tools.javac.tree.JCTree.JCMethodDecl;
+import com.sun.tools.javac.tree.JCTree.JCNewClass;
 import com.sun.tools.javac.tree.JCTree.JCStatement;
-import com.sun.tools.javac.tree.TreeInfo;
+import com.sun.tools.javac.tree.JCTree.JCVariableDecl;
 import com.sun.tools.javac.tree.TreeMaker;
 import com.sun.tools.javac.tree.TreeTranslator;
 import com.sun.tools.javac.util.Context;
@@ -44,7 +36,6 @@ import com.sun.tools.javac.util.List;
 import com.sun.tools.javac.util.Log;
 import com.sun.tools.javac.util.Name;
 import com.sun.tools.javac.util.Names;
-import static com.sun.tools.javac.code.Kinds.*;
 
 public class ExpansionTranslator extends TreeTranslator {
 
@@ -52,34 +43,31 @@ public class ExpansionTranslator extends TreeTranslator {
 
 	protected Context context;
 	protected ProcessingEnvironment processingEnv;
-	
-	private Symtab syms;
+
 	protected TreeMaker make;
 	protected Names names;
-	private Resolve rs;
 	protected Enter enter;
 	protected MemberEnter memberEnter;
 	protected TreePath path;
 	protected Attr attr;
 	protected Log log;
 
-	protected AnnotatedTypeFactory atypeFactory;
-
-	public ExpansionTranslator(ProcessingEnvironment processingEnv,
-			TreePath path) {
-		this.processingEnv = processingEnv;
+	public ExpansionTranslator(ProcessingEnvironment processingEnv) {
 		context = ((JavacProcessingEnvironment) this.processingEnv).getContext();
-		syms = Symtab.instance(context);
 		make = TreeMaker.instance(context);
 		names = Names.instance(context);
 		enter = Enter.instance(context);
-		rs = Resolve.instance(context);
 		memberEnter = MemberEnter.instance(context);
 		attr = Attr.instance(context);
 		log = Log.instance(context);
 	}
 
 	Env<AttrContext> env;
+
+	@Override
+	public void visitTopLevel(JCCompilationUnit tree) {
+		super.visitTopLevel(tree);
+	}
 
 	@Override
 	public void visitMethodDef(JCMethodDecl tree) {
@@ -91,7 +79,7 @@ public class ExpansionTranslator extends TreeTranslator {
 
 	@Override
 	public void visitBlock(JCBlock tree) {
-		
+
 		System.out.println("# visitBlock: \n" + tree);
 		List<JCStatement> stats;
 
@@ -99,10 +87,10 @@ public class ExpansionTranslator extends TreeTranslator {
 			JCStatement stat = stats.head;
 
 			if (isMorphedVariableDeclaration(stat)) {
-			
+
 				System.out.println("# Found a morphed variable declaration: "
 						+ stat);
-				
+
 				JCVariableDecl varDecl = (JCVariableDecl) stat;
 
 				printSymbolInfo(varDecl.sym);
@@ -113,6 +101,8 @@ public class ExpansionTranslator extends TreeTranslator {
 
 				enterMember(varDecl, env);
 
+				attribute(varDecl);
+
 				printScopeInfo(varDecl.sym.members());
 
 				printSymbolInfo(varDecl.sym);
@@ -120,6 +110,8 @@ public class ExpansionTranslator extends TreeTranslator {
 		}
 
 		System.out.println("# end: \n" + tree);
+
+		result = tree;
 
 		super.visitBlock(tree);
 	}
@@ -154,6 +146,11 @@ public class ExpansionTranslator extends TreeTranslator {
 		}
 	}
 
+	private void attribute(JCTree tree) {
+		attr.attribStat(tree, env);
+	}
+
+	@SuppressWarnings("unused")
 	private void spliceNode(List<JCStatement> statementList,
 			JCStatement oldNode, JCStatement newNode) {
 		List<JCTree.JCStatement> newList = List
@@ -210,18 +207,15 @@ public class ExpansionTranslator extends TreeTranslator {
 		Type expandedClassType = tree.sym.enclClass().members()
 				.lookup(expandedClassName).sym.type;
 
-		JCNewClass initExpression = make.NewClass(null, 
-				null, 
-				make.Select(make.Ident(tree.sym.enclClass().name), expandedClassName), 
-				oldInitializerList, 
-				null);
+		JCNewClass initExpression = make.NewClass(null, null, make.Select(
+				make.Ident(tree.sym.enclClass().name), expandedClassName),
+				oldInitializerList, null);
 
-		tree.vartype = make.Select(
-				make.Ident(tree.sym.enclClass().name), expandedClassName);
+		tree.vartype = make.Select(make.Ident(tree.sym.enclClass().name),
+				expandedClassName);
 		tree.setType(expandedClassType);
 		tree.init = initExpression;
 		tree.sym.type = expandedClassType;
-
 	}
 
 	private boolean isMorphedVariableDeclaration(JCTree tree) {

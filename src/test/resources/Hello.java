@@ -34,7 +34,6 @@ public class Hello {
 	// 1. Fresh name will be generated for top level class definition.
 	// 2. Generic type is substituted with concrete type.
 	// 3. Expanded static for method declarations.
-	
 	public static class __Logged$Stack {
 		
 		Stack instance;
