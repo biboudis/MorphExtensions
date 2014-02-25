@@ -29,7 +29,7 @@ import com.sun.tools.javac.util.Context;
 public class ExpansionProcessor extends AbstractProcessor {
 	private JavacProcessingEnvironment processingEnv;
 	private Context context;
-	private	Trees trees;
+	private Trees trees;
 
 	@Override
 	public synchronized void init(ProcessingEnvironment processingEnv) {
@@ -52,14 +52,22 @@ public class ExpansionProcessor extends AbstractProcessor {
 		Set<? extends Element> elementSet = roundEnvironment.getRootElements();
 
 		if (elementSet.size() > 0)
-			System.out.println("# ExpansionProcessor: root element set to process " + elementSet.toString());
-		
-        for(Element e: elementSet) {
-        	JCCompilationUnit tree = toCompilationUnit(e);
-        	tree.accept(new ExpansionTranslator(context));
-        	processingEnv.getMessager().printMessage(Kind.NOTE, e + " synthetic classes rewritten.");
-        }
-        
+			System.out.println("# ExpansionProcessor: root element set to process "
+							+ elementSet.toString());
+
+		for (Element e : elementSet) {
+			JCCompilationUnit tree = toCompilationUnit(e);
+
+			tree.accept(new ExpansionTranslator(context));
+
+			processingEnv.getMessager().printMessage(Kind.NOTE,
+					e + " synthetic classes rewritten.");
+		}
+
+		// Generating a dummy file; doesn't seem to do anything.
+		if (dummyCount == 0)
+			ExpansionProcessor.createDummySourceFile((JavacFiler) processingEnv.getFiler(), processingEnv);
+
 		return false;
 	}
 
@@ -74,30 +82,37 @@ public class ExpansionProcessor extends AbstractProcessor {
 	}
 
 	private static int dummyCount = 0;
+
 	/**
 	 * Inspired by Project Lombok to enforce new round after transforming AST
 	 * trees to something invalid prior to expansion.
 	 * */
 	public static void createDummySourceFile(JavacFiler filer,
 			JavacProcessingEnvironment processingEnv) {
-		try {
-			JavaFileObject dummy = filer
-					.createSourceFile("morphextensions.dummy.ForceNewRound" + (dummyCount++));
-			Writer w = dummy.openWriter();
-			w.close();
-		} catch (Exception e) {
-			e.printStackTrace();
-			processingEnv
-					.getMessager()
-					.printMessage(Kind.WARNING,
-							"Can't force a new processing round. MorphExsentions cannot work.");
+
+		if (!filer.newFiles()) {
+			System.out.println("# Generating a dummy file.");
+			try {
+				JavaFileObject dummy = filer
+						.createSourceFile("dummy.ForceNewRound"
+								+ (dummyCount++));
+				Writer w = dummy.openWriter();
+				w.close();
+			} catch (Exception e) {
+				e.printStackTrace();
+				processingEnv
+						.getMessager()
+						.printMessage(Kind.WARNING,
+								"Can't force a new processing round. MorphExsentions cannot work.");
+			}
 		}
 	}
-	
+
 	private JCCompilationUnit toCompilationUnit(Element element) {
 		TreePath path = trees == null ? null : trees.getPath(element);
-		if (path == null) return null;
-		
+		if (path == null)
+			return null;
+
 		return (JCCompilationUnit) path.getCompilationUnit();
 	}
 

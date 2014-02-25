@@ -56,7 +56,7 @@ done
 # Command for a plugin
 # COMMAND="javac -Xbootclasspath/p:$LIB_PATH:$CHECKER_CP -processorpath $LIB_PATH:$CHECKER_CP -Xplugin:$ENABLED_PLUGINS $INPUT_FILES"
 # Command for an annotation processor
-COMMAND="javac -Xbootclasspath/p:$LIB_PATH:$CHECKER_CP -processorpath $LIB_PATH:$CHECKER_CP $INPUT_FILES"
+COMMAND="javac -XprintRounds -XprintProcessorInfo -Xbootclasspath/p:$LIB_PATH:$CHECKER_CP -processorpath $LIB_PATH:$CHECKER_CP $INPUT_FILES"
 
 if $WHATIF
 then
