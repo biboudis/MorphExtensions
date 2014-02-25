@@ -11,8 +11,7 @@ public class ExpansionPlugin implements Plugin {
 	}
 
 	@Override
-	public void init(JavacTask arg0, String... arg1) {
-		System.out.println("Running!");
-		arg0.addTaskListener(new ExpansionTaskListener(arg0));
+	public void init(JavacTask task, String... arg1) {
+		task.addTaskListener(new ExpansionTaskListener(task));
 	}
 }

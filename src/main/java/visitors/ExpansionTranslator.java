@@ -4,25 +4,21 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 import javax.annotation.processing.ProcessingEnvironment;
-import com.sun.tools.javac.processing.JavacProcessingEnvironment;
 
 import annotations.Morph;
-import checkers.types.AnnotatedTypeFactory;
-import com.sun.tools.javac.api.JavacTaskImpl;
+
 import com.sun.source.tree.Tree.Kind;
 import com.sun.source.util.JavacTask;
-import com.sun.source.util.TaskEvent;
 import com.sun.source.util.TreePath;
+import com.sun.tools.javac.api.BasicJavacTask;
 import com.sun.tools.javac.code.Scope;
 import com.sun.tools.javac.code.Symbol;
-import com.sun.tools.javac.code.Symtab;
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.comp.Attr;
 import com.sun.tools.javac.comp.AttrContext;
 import com.sun.tools.javac.comp.Enter;
 import com.sun.tools.javac.comp.Env;
 import com.sun.tools.javac.comp.MemberEnter;
-import com.sun.tools.javac.comp.Resolve;
 import com.sun.tools.javac.tree.JCTree;
 import com.sun.tools.javac.tree.JCTree.JCBlock;
 import com.sun.tools.javac.tree.JCTree.JCCompilationUnit;
@@ -38,7 +34,6 @@ import com.sun.tools.javac.util.List;
 import com.sun.tools.javac.util.Log;
 import com.sun.tools.javac.util.Name;
 import com.sun.tools.javac.util.Names;
-import com.sun.tools.javac.api.BasicJavacTask;
 
 public class ExpansionTranslator extends TreeTranslator {
 
@@ -55,8 +50,8 @@ public class ExpansionTranslator extends TreeTranslator {
 	protected Attr attr;
 	protected Log log;
 
-	public ExpansionTranslator(JavacTask task) {
-		context = ((BasicJavacTask) task).getContext();
+	public ExpansionTranslator(Context context) {
+		// context = ((BasicJavacTask) task).getContext();
 		make = TreeMaker.instance(context);
 		names = Names.instance(context);
 		enter = Enter.instance(context);
@@ -91,8 +86,7 @@ public class ExpansionTranslator extends TreeTranslator {
 
 			if (isMorphedVariableDeclaration(stat)) {
 
-				System.out.println("# Found a morphed variable declaration: "
-						+ stat);
+				System.out.println("# Found a morphed variable declaration: " + stat);
 
 				JCVariableDecl varDecl = (JCVariableDecl) stat;
 
@@ -161,70 +155,88 @@ public class ExpansionTranslator extends TreeTranslator {
 		newList.tail = statementList.tail;
 		statementList.tail = newList;
 	}
+	
+	private void printTreeInfo(JCTree tree){
+		if (tree != null) {
+			System.out.println("# Tree: " + tree);
+			System.out.println("\tKind: " + tree.getKind());
+			System.out.println("\tTag: " + tree.getTag());
+		} else {
+			System.out.println("# Tree is null.");
+		}
+	}
 
 	private void printSymbolInfo(Symbol sym) {
-		System.out.println("# Symbol: " + sym);
-
 		if (sym != null) {
+			System.out.println("# Symbol: " + sym);
 			System.out.println("\tKind: " + sym.getKind());
 			System.out.println("\tType: " + sym.type);
 			System.out.println("\tBase Symbol: " + sym.baseSymbol());
 			System.out.println("\tOutermost class: " + sym.outermostClass());
-			System.out.println("\tEnclosing element: "
-					+ sym.getEnclosingElement());
+			System.out.println("\tEnclosing element: " + sym.getEnclosingElement());
 			System.out.println("\tLocation: " + sym.location());
-			System.out.println("\tMembers " + sym.members());
+			System.out.println("\tMembers: " + sym.members());
 
 			System.out.println("\tOwner: " + sym.owner);
 			System.out.println("\t\tKind: " + sym.owner.getKind());
 			System.out.println("\t\tMembers: " + sym.owner.members());
 		} else {
-			System.out.println("Symbol is null.");
+			System.out.println("# Symbol is null.");
 		}
 	}
 
 	private void printEnvInfo(Env<?> env) {
 		if (env != null) {
-			System.out.println("# env: " + env);
-			System.out.println("# enclosing method: " + env.enclMethod);
+			System.out.println("# Env: " + env);
+			System.out.println("#\tEnclosing method: " + env.enclMethod);
 		} else {
-			System.out.println("Environment is null.");
+			System.out.println("# Env is null.");
 		}
 	}
 
 	private void printScopeInfo(Scope s) {
 		if (s != null) {
-			System.out.println("# scope: " + s);
-			System.out.println("#\telements: " + s.elems);
+			System.out.println("# Scope: " + s);
+			System.out.println("#\tElements: " + s.elems);
 		} else {
-			System.out.println("Scope is null.");
+			System.out.println("# Scope is null.");
 		}
 	}
 
 	private void makeExpandedVarDeclaration(JCVariableDecl tree) {
 
-		List<JCExpression> oldInitializerList = ((JCNewClass) tree.init).args;
-
 		Name expandedClassName = names.fromString("__Logged$Stack");
-
+		
+		printTreeInfo(tree);
+		printSymbolInfo(tree.sym);
+		printScopeInfo(tree.sym.enclClass().members());
+		
 		Type expandedClassType = tree.sym.enclClass().members()
 				.lookup(expandedClassName).sym.type;
 
+		List<JCExpression> oldInitializerList = ((JCNewClass) tree.init).args;
+		
 		JCNewClass initExpression = make.NewClass(null, null, make.Select(
 				make.Ident(tree.sym.enclClass().name), expandedClassName),
 				oldInitializerList, null);
 
-		tree.vartype = make.Select(make.Ident(tree.sym.enclClass().name),
-				expandedClassName);
+		tree.vartype = make.Select(make.Ident(tree.sym.enclClass().name), expandedClassName);
 		tree.setType(expandedClassType);
 		tree.init = initExpression;
 		tree.sym.type = expandedClassType;
-	}
+	} 
 
 	private boolean isMorphedVariableDeclaration(JCTree tree) {
-		return tree.getKind() == Kind.VARIABLE
-				&& ((JCVariableDecl) tree).getType().type.tsym
-						.getAnnotation(Morph.class) != null;
+		if (tree.getKind() == Kind.VARIABLE) {
+			JCVariableDecl varDecl = ((JCVariableDecl) tree);
+			
+			attribute(varDecl);
+						
+			return ((JCVariableDecl) tree).getType().type.tsym
+					.getAnnotation(Morph.class) != null;
+		}
+		
+		return false;
 	}
 
 	private JCExpression stringToExpression(String chain) {
