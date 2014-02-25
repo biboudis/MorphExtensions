@@ -17,7 +17,7 @@ into this:
 Hello.__Logged$Stack l_stack = new Hello.__Logged$Stack(new Hello.Stack())
 ```
 
-The rewriting process will come after entering a synthetic class into the symbol table but for the time being this class is included manually.
+This rewriting phasem in the future will come after entering a synthetic class (like ```__Logged$Stack```) into the symbol table but for the time being this class is included manually.
 
 ``` Java
 @Morph
@@ -45,4 +45,3 @@ public static class __Logged$Stack {
   }
 }
 ```
-
