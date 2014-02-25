@@ -3,8 +3,20 @@ Morph Extensions for Java
 
 This library introduces class-morphing to Java via (JSR 308) type annotations.
 
-Testing with: ```cd ~/Projects/MorphExtensions;mvn package;./src/test/resources/javamc ./src/test/resources/Hello.java```
+Environment setup
+-----------------
+``` bash
+CHECKERS=/home/bibou/Projects/types/checker-framework-1.7.4/
+export PATH=${CHECKERS}/binary:${PATH}
+```
 
+Manual Testing
+--------------
+```cd ~/Projects/MorphExtensions;mvn package;./src/test/resources/javamc ./src/test/resources/Hello.java```
+
+
+Goal
+----
 The first step is to translate this var declaration:
 
 ``` Java
