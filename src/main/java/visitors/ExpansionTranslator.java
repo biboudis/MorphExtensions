@@ -99,8 +99,7 @@ public class ExpansionTranslator extends TreeTranslator {
 
 				makeExpandedVarDeclaration(varDecl);
 
-				attribute(varDecl);
-
+				// attribute(varDecl);
 				// enterMember(varDecl, env);
 				
 				System.out.println("# translated to: \n" + tree);
@@ -174,8 +173,8 @@ public class ExpansionTranslator extends TreeTranslator {
 	private boolean isMorphedVariableDeclaration(JCTree tree) {
 		if (tree.getKind() == Kind.VARIABLE) {
 			JCVariableDecl varDecl = ((JCVariableDecl) tree);
-
-			return ((JCVariableDecl) tree).getType().type.tsym
+			
+			return varDecl.getType().type.tsym
 					.getAnnotation(Morph.class) != null;
 		}
 
