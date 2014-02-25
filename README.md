@@ -3,6 +3,8 @@ Morph Extensions for Java
 
 This library introduces class-morphing to Java via (JSR 308) type annotations.
 
+Testing with: ```cd ~/Projects/MorphExtensions;mvn package;./src/test/resources/javamc ./src/test/resources/Hello.java```
+
 The first step is to translate this var declaration:
 
 ``` Java
