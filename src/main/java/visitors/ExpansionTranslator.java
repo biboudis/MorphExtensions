@@ -2,6 +2,10 @@ package visitors;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 import javax.annotation.processing.ProcessingEnvironment;
 
@@ -11,6 +15,7 @@ import annotations.Morph;
 
 import com.sun.source.tree.Tree.Kind;
 import com.sun.source.util.TreePath;
+import com.sun.tools.javac.code.Kinds;
 import com.sun.tools.javac.code.Scope;
 import com.sun.tools.javac.code.Symbol;
 import com.sun.tools.javac.code.Type;
@@ -23,7 +28,9 @@ import com.sun.tools.javac.tree.JCTree;
 import com.sun.tools.javac.tree.JCTree.JCBlock;
 import com.sun.tools.javac.tree.JCTree.JCCompilationUnit;
 import com.sun.tools.javac.tree.JCTree.JCExpression;
+import com.sun.tools.javac.tree.JCTree.JCIdent;
 import com.sun.tools.javac.tree.JCTree.JCMethodDecl;
+import com.sun.tools.javac.tree.JCTree.JCMethodInvocation;
 import com.sun.tools.javac.tree.JCTree.JCNewClass;
 import com.sun.tools.javac.tree.JCTree.JCStatement;
 import com.sun.tools.javac.tree.JCTree.JCVariableDecl;
@@ -37,8 +44,11 @@ import com.sun.tools.javac.util.Names;
 
 public class ExpansionTranslator extends TreeTranslator {
 
-	protected static final String SYN_PREFIX = "__";
-
+	private static final String SYN_TYPE_PREFIX = "__";
+	private static final String SYN_VAR_NAME_SUFFIX = "__SYN";
+	
+	protected Set<Name> replaced = new HashSet<Name>();
+	
 	protected Context context;
 	protected ProcessingEnvironment processingEnv;
 
@@ -59,7 +69,7 @@ public class ExpansionTranslator extends TreeTranslator {
 		log = Log.instance(context);
 	}
 
-	Env<AttrContext> env;
+	Env<AttrContext> methodEnv;
 
 	@Override
 	public void visitTopLevel(JCCompilationUnit tree) {
@@ -69,7 +79,7 @@ public class ExpansionTranslator extends TreeTranslator {
 	@Override
 	public void visitMethodDef(JCMethodDecl tree) {
 		// Tracking the current method environment to use it in attribution.
-		env = memberEnter.getMethodEnv(tree,
+		methodEnv = memberEnter.getMethodEnv(tree,
 				enter.getClassEnv(tree.sym.enclClass()));
 
 		super.visitMethodDef(tree);
@@ -81,31 +91,31 @@ public class ExpansionTranslator extends TreeTranslator {
 
 		for (stats = tree.stats; stats.tail != null; stats = stats.tail) {
 			JCStatement stat = stats.head;
-			
-			// This step is needed to be able to use symbols and type symbols below.
-			attribute(stat);
-			
+
+			// This step is needed to be able to use symbols and type symbols
+			// below.
+			attr.attribStat(stat, methodEnv);
+
 			if (isMorphedVariableDeclaration(stat)) {
 				JCVariableDecl varDecl = (JCVariableDecl) stat;
 
-				System.out.println("# Found a morphed variable declaration: "
-						+ varDecl);
-				System.out.println("# in: \n" + tree);
+				System.out.println("# Found a morphed variable declaration: " + varDecl);
 
-				Debug.printEnvInfo(env);
+				Debug.printEnvInfo(methodEnv);
 				Debug.printTreeInfo(varDecl);
 				Debug.printSymbolInfo(varDecl.sym);
 				Debug.printScopeInfo(varDecl.sym.enclClass().members());
 
-				makeExpandedVarDeclaration(varDecl);
-
-				// attribute(varDecl);
-				// enterMember(varDecl, env);
+				JCVariableDecl ret = makeExpandedVarDeclaration(varDecl);
 				
-				System.out.println("# translated to: \n" + tree);
-				Debug.printEnvInfo(env);
-				Debug.printTreeInfo(varDecl);
-				Debug.printSymbolInfo(varDecl.sym);
+				System.out.println("# translated to: \n" + ret);
+
+				if (ret != null) {
+					spliceNode(stats, stat, ret);
+					
+					attr.attribStat(tree, methodEnv);
+				}
+				
 				Debug.printScopeInfo(varDecl.sym.enclClass().members());
 			}
 		}
@@ -113,6 +123,29 @@ public class ExpansionTranslator extends TreeTranslator {
 		result = tree;
 
 		super.visitBlock(tree);
+	}
+	
+	@Override
+	public void visitApply(JCMethodInvocation tree) {
+		super.visitApply(tree);
+
+		System.out.println(tree);
+	}
+
+	@Override
+	public void visitIdent(JCIdent tree) {
+		super.visitIdent(tree);
+		
+		// Translate a local variable access: e.g. l_stack to l_stack__SYN
+		// if the variable access comes from a variable declaration that has been rewritten.
+		if (replaced.contains(tree.name)) {
+			System.out.println("Found one!" + tree.name);
+			String newName = tree.name.toString() + SYN_VAR_NAME_SUFFIX;
+
+			JCTree.JCExpression expr = make.Ident(names.fromString(newName));
+			System.out.println("to: " + expr);
+			result = expr;
+		}
 	}
 
 	@Override
@@ -145,37 +178,39 @@ public class ExpansionTranslator extends TreeTranslator {
 		}
 	}
 
-	private void attribute(JCTree tree) {
-		attr.attribStat(tree, env);
-	}
+	private JCVariableDecl makeExpandedVarDeclaration(JCVariableDecl tree) {
+		
+		// check if has already been rewritten
+		if (replaced.contains(tree.name))
+			return null;
 
-	private void makeExpandedVarDeclaration(JCVariableDecl tree) {
-
-		// Lookup synthetic class and wire it as a type to the previous
-		// JCVariableDecl.
+		// Lookup synthetic class: e.g. __Logged$Stack
 		Name expandedClassName = names.fromString("__Logged$Stack");
-		Type expandedClassType = tree.sym.enclClass().members()
-				.lookup(expandedClassName).sym.type;
+
+		// Fully qualified path: e.g Hello.__Logged$Stack
+		JCExpression newType = make.Select(
+				make.Ident(tree.sym.enclClass().name), expandedClassName);
 
 		List<JCExpression> oldInitializerList = ((JCNewClass) tree.init).args;
 
-		JCNewClass initExpression = make.NewClass(null, null, make.Select(
-				make.Ident(tree.sym.enclClass().name), expandedClassName),
+		JCNewClass initExpression = make.NewClass(null, null, newType,
 				oldInitializerList, null);
 
-		tree.vartype = make.Select(make.Ident(tree.sym.enclClass().name),
-				expandedClassName);
-		tree.setType(expandedClassType);
-		tree.init = initExpression;
-		tree.sym.type = expandedClassType;
+		JCTree.JCVariableDecl decl = make.VarDef(tree.mods,
+				names.fromString(tree.name + SYN_VAR_NAME_SUFFIX), newType,
+				initExpression);
+		
+		// keep track of the produced node (with the original name)
+		replaced.add(tree.name);
+
+		return decl;
 	}
 
 	private boolean isMorphedVariableDeclaration(JCTree tree) {
 		if (tree.getKind() == Kind.VARIABLE) {
 			JCVariableDecl varDecl = ((JCVariableDecl) tree);
-			
-			return varDecl.getType().type.tsym
-					.getAnnotation(Morph.class) != null;
+
+			return varDecl.getType().type.tsym.getAnnotation(Morph.class) != null;
 		}
 
 		return false;

@@ -15,6 +15,7 @@ import javax.lang.model.element.TypeElement;
 import javax.tools.Diagnostic.Kind;
 import javax.tools.JavaFileObject;
 
+import utils.Debug;
 import visitors.ExpansionTranslator;
 
 import com.sun.source.util.TreePath;
@@ -38,6 +39,7 @@ public class ExpansionProcessor extends AbstractProcessor {
 		this.processingEnv = (JavacProcessingEnvironment) processingEnv;
 		this.context = this.processingEnv.getContext();
 		this.trees = Trees.instance(processingEnv);
+		Debug.setMessager(processingEnv.getMessager());
 	}
 
 	@Override

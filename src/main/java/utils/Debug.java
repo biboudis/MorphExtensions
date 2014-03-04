@@ -1,5 +1,7 @@
 package utils;
 
+import javax.annotation.processing.Messager;
+
 import com.sun.tools.javac.code.Scope;
 import com.sun.tools.javac.code.Symbol;
 import com.sun.tools.javac.comp.Env;
@@ -7,6 +9,8 @@ import com.sun.tools.javac.tree.JCTree;
 
 public class Debug {
 
+	private static Messager messager = null;
+	
 	public static void printTreeInfo(JCTree tree) {
 		if (tree != null) {
 			System.out.println("# Tree: " + tree);
@@ -24,8 +28,7 @@ public class Debug {
 			System.out.println("\tType: " + sym.type);
 			System.out.println("\tBase Symbol: " + sym.baseSymbol());
 			System.out.println("\tOutermost class: " + sym.outermostClass());
-			System.out.println("\tEnclosing element: "
-					+ sym.getEnclosingElement());
+			System.out.println("\tEnclosing element: " + sym.getEnclosingElement());
 			System.out.println("\tLocation: " + sym.location());
 			System.out.println("\tMembers: " + sym.members());
 
@@ -49,9 +52,12 @@ public class Debug {
 	public static void printScopeInfo(Scope s) {
 		if (s != null) {
 			System.out.println("# Scope: " + s);
-			System.out.println("#\tElements: " + s.elems);
 		} else {
 			System.out.println("# Scope is null.");
 		}
+	}
+
+	public static void setMessager(Messager thatMessager) {
+		messager = thatMessager;
 	}
 }
