@@ -28,94 +28,94 @@ import com.sun.tools.javac.util.Context;
 @SupportedAnnotationTypes("*")
 @SupportedSourceVersion(SourceVersion.RELEASE_7)
 public class ExpansionProcessor extends AbstractProcessor {
-	private JavacProcessingEnvironment processingEnv;
-	private Context context;
-	private Trees trees;
+    private JavacProcessingEnvironment processingEnv;
+    private Context context;
+    private Trees trees;
 
-	@Override
-	public synchronized void init(ProcessingEnvironment processingEnv) {
-		super.init(processingEnv);
+    @Override
+    public synchronized void init(ProcessingEnvironment processingEnv) {
+	super.init(processingEnv);
 
-		this.processingEnv = (JavacProcessingEnvironment) processingEnv;
-		this.context = this.processingEnv.getContext();
-		this.trees = Trees.instance(processingEnv);
-		Debug.setMessager(processingEnv.getMessager());
+	this.processingEnv = (JavacProcessingEnvironment) processingEnv;
+	this.context = this.processingEnv.getContext();
+	this.trees = Trees.instance(processingEnv);
+	Debug.setMessager(processingEnv.getMessager());
+    }
+
+    @Override
+    public boolean process(Set<? extends TypeElement> arg0,
+			   RoundEnvironment roundEnvironment) {
+
+	System.out.println("# ExpansionProcessor");
+
+	if (roundEnvironment.processingOver())
+	    return false;
+
+	Set<? extends Element> elementSet = roundEnvironment.getRootElements();
+
+	if (elementSet.size() > 0)
+	    System.out.println("# ExpansionProcessor: root element set to process "
+			       + elementSet.toString());
+
+	for (Element e : elementSet) {
+	    JCCompilationUnit tree = toCompilationUnit(e);
+
+	    tree.accept(new ExpansionTranslator(context));
+
+	    processingEnv.getMessager().printMessage(Kind.NOTE,
+						     e + " synthetic classes rewritten.");
 	}
 
-	@Override
-	public boolean process(Set<? extends TypeElement> arg0,
-			RoundEnvironment roundEnvironment) {
+	// Generating a dummy file; doesn't seem to do anything.
+	if (dummyCount == 0)
+	    ExpansionProcessor.createDummySourceFile((JavacFiler) processingEnv.getFiler(), processingEnv);
 
-		System.out.println("# ExpansionProcessor");
+	return false;
+    }
 
-		if (roundEnvironment.processingOver())
-			return false;
+    /**
+     * Inspired by Project Lombok to avoid the warning: Supported source version
+     * 'RELEASE_7' from annotation processor 'processors.ExpansionProcessor'
+     * less than -source '1.8'
+     */
+    @Override
+    public SourceVersion getSupportedSourceVersion() {
+	return SourceVersion.values()[SourceVersion.values().length - 1];
+    }
 
-		Set<? extends Element> elementSet = roundEnvironment.getRootElements();
+    private static int dummyCount = 0;
 
-		if (elementSet.size() > 0)
-			System.out.println("# ExpansionProcessor: root element set to process "
-							+ elementSet.toString());
+    /**
+     * Inspired by Project Lombok to enforce new round after transforming AST
+     * trees to something invalid prior to expansion.
+     * */
+    public static void createDummySourceFile(JavacFiler filer,
+					     JavacProcessingEnvironment processingEnv) {
 
-		for (Element e : elementSet) {
-			JCCompilationUnit tree = toCompilationUnit(e);
-
-			tree.accept(new ExpansionTranslator(context));
-
-			processingEnv.getMessager().printMessage(Kind.NOTE,
-					e + " synthetic classes rewritten.");
-		}
-
-		// Generating a dummy file; doesn't seem to do anything.
-		if (dummyCount == 0)
-			ExpansionProcessor.createDummySourceFile((JavacFiler) processingEnv.getFiler(), processingEnv);
-
-		return false;
+	if (!filer.newFiles()) {
+	    System.out.println("# Generating a dummy file.");
+	    try {
+		JavaFileObject dummy = filer
+		    .createSourceFile("dummy.ForceNewRound"
+				      + (dummyCount++));
+		Writer w = dummy.openWriter();
+		w.close();
+	    } catch (Exception e) {
+		e.printStackTrace();
+		processingEnv
+		    .getMessager()
+		    .printMessage(Kind.WARNING,
+				  "Can't force a new processing round. MorphExsentions cannot work.");
+	    }
 	}
+    }
 
-	/**
-	 * Inspired by Project Lombok to avoid the warning: Supported source version
-	 * 'RELEASE_7' from annotation processor 'processors.ExpansionProcessor'
-	 * less than -source '1.8'
-	 */
-	@Override
-	public SourceVersion getSupportedSourceVersion() {
-		return SourceVersion.values()[SourceVersion.values().length - 1];
-	}
+    private JCCompilationUnit toCompilationUnit(Element element) {
+	TreePath path = trees == null ? null : trees.getPath(element);
+	if (path == null)
+	    return null;
 
-	private static int dummyCount = 0;
-
-	/**
-	 * Inspired by Project Lombok to enforce new round after transforming AST
-	 * trees to something invalid prior to expansion.
-	 * */
-	public static void createDummySourceFile(JavacFiler filer,
-			JavacProcessingEnvironment processingEnv) {
-
-		if (!filer.newFiles()) {
-			System.out.println("# Generating a dummy file.");
-			try {
-				JavaFileObject dummy = filer
-						.createSourceFile("dummy.ForceNewRound"
-								+ (dummyCount++));
-				Writer w = dummy.openWriter();
-				w.close();
-			} catch (Exception e) {
-				e.printStackTrace();
-				processingEnv
-						.getMessager()
-						.printMessage(Kind.WARNING,
-								"Can't force a new processing round. MorphExsentions cannot work.");
-			}
-		}
-	}
-
-	private JCCompilationUnit toCompilationUnit(Element element) {
-		TreePath path = trees == null ? null : trees.getPath(element);
-		if (path == null)
-			return null;
-
-		return (JCCompilationUnit) path.getCompilationUnit();
-	}
+	return (JCCompilationUnit) path.getCompilationUnit();
+    }
 
 }
