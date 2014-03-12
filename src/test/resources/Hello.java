@@ -41,28 +41,31 @@ public class Hello {
 		public __Logged$Stack(Stack t) { this.instance = t; }
 		
 	    public Object pop() {
-	    	System.out.println("Log first");
+	    	System.out.println("# Log: pop");
 	    	return instance.pop();
 	    }
 	    
 	    public Object peek() {
-	    	System.out.println("Log first");
+	    	System.out.println("# Log: peek");
 	    	return instance.peek();
+	    }
+	    
+	    public void push(Object item) {
+	    	System.out.println("# Log: push");
+	    	instance.push(item);
 	    }
 	}
 	
 	public static void main(String[] args) {
 		
-		System.out.println("# Stack Test");	
-		
-		Hello.Stack stack = new Hello.Stack();
-		
 		System.out.println("# Normal Stack Test");
-		System.out.println("# Peek: " + stack.peek());
-		
-		Hello.Logged<Hello.Stack> l_stack = new Hello.Logged<Hello.Stack>(new Hello.Stack());
+		Hello.Stack stack = new Hello.Stack();
+		stack.push("Added a string to normal.");
+		stack.peek();
 		
 		System.out.println("# Logged Stack Test");
-		System.out.println("# Peek: " + l_stack.peek());		
+		Hello.Logged<Hello.Stack> l_stack = new Hello.Logged<Hello.Stack>(new Hello.Stack());
+		l_stack.push("Added a string to morphed.");
+		l_stack.peek();
 	}
 }
