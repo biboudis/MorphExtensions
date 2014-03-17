@@ -15,9 +15,10 @@ Manual Testing
 ```cd ~/Projects/MorphExtensions;mvn package;./src/test/resources/javamc ./src/test/resources/Hello.java```
 
 
-Goal
-----
-The first step is to translate this var declaration:
+Milestones
+----------
+
+- [x] Translate a simple var declaration, with ```__Logged$Stack``` being entered via source:
 
 ``` Java
 Hello.Logged<Hello.Stack> l_stack = new Hello.Logged<Hello.Stack>(new Hello.Stack());
@@ -29,16 +30,9 @@ into this:
 Hello.__Logged$Stack l_stack = new Hello.__Logged$Stack(new Hello.Stack())
 ```
 
-This rewriting phasem in the future will come after entering a synthetic class (like ```__Logged$Stack```) into the symbol table but for the time being this class is included manually.
+- [ ] Enter the synthetic class ```__Logged$Stack``` programmatically as a top
+  level class in the same package.
 
-``` Java
-@Morph
-public static class Logged<T> {
-  T instance;
-  public Logged(T t) { this.instance = t; }
-}
-```
-	
 
 ``` Java
 public static class __Logged$Stack {
