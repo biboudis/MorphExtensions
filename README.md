@@ -15,8 +15,7 @@ Manual Testing
 ```cd ~/Projects/MorphExtensions;mvn package;./src/test/resources/javamc ./src/test/resources/Hello.java```
 
 
-Milestones
-----------
+# Milestones
 
 - [x] Translate a simple var declaration, with ```__Logged$Stack``` being entered via source:
 
