@@ -15,9 +15,10 @@ Manual Testing
 ```cd ~/Projects/MorphExtensions;mvn package;./src/test/resources/javamc ./src/test/resources/Hello.java```
 
 
-# Milestones
+Milestones
+----------
 
-- [x] Translate a simple var declaration, with ```__Logged$Stack``` being entered via source:
+* (Done) Translate a simple var declaration, with ```__Logged$Stack``` being entered via source:
 
 ``` Java
 Hello.Logged<Hello.Stack> l_stack = new Hello.Logged<Hello.Stack>(new Hello.Stack());
@@ -29,8 +30,8 @@ into this:
 Hello.__Logged$Stack l_stack = new Hello.__Logged$Stack(new Hello.Stack())
 ```
 
-- [ ] Enter the synthetic class ```__Logged$Stack``` programmatically as a top
-  level class in the same package.
+* Enter the synthetic class ```__Logged$Stack``` programmatically as a top level
+  class in the same package.
 
 
 ``` Java
