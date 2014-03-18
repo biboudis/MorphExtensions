@@ -197,10 +197,10 @@ public class ExpansionTranslator extends TreeTranslator {
 		if (replaced.contains(tree.name))
 			return null;
 
-		// Lookup synthetic class: e.g. __Logged$Stack
-		Name expandedClassName = names.fromString("__Logged$Stack");
+		// Lookup synthetic class: e.g. Logged$Stack
+		Name expandedClassName = names.fromString("Logged$Stack");
 
-		// Fully qualified path: e.g Hello.__Logged$Stack
+		// Fully qualified path: e.g Hello.Logged$Stack
 		JCExpression newType = make.Select(
 				make.Ident(tree.sym.enclClass().name), expandedClassName);
 
@@ -219,22 +219,22 @@ public class ExpansionTranslator extends TreeTranslator {
 		return decl;
 	}
 	
-	/*  This method creates an expansion of a morphed class.
-	 
-		public static class __Logged$Stack {
-		
-			Stack instance;
-		
-			public __Logged$Stack(Stack t) { this.instance = t; }
-		
-	    	(...reflective methods...)
-		} 
-	*/
+	
+	// 	
+	
+	/**
+	 * 	public static class Logged$Stack {
+	 *	  Stack instance;
+	 *    public Logged$Stack(Stack t) { this.instance = t; }
+	 *	    	(...reflective methods...)
+	 *	} 
+	 */
 
 	private JCClassDecl makeMorphedClass(ClassSymbol owner, List<Type> typeArguments) {
 
 		ClassSymbol c = syms.defineClass(names.empty, owner);
-		c.flatname = names.fromString("__Logged$Stack");
+		
+		c.flatname = names.fromString("Logged$Stack");
 		c.sourcefile = owner.sourcefile;
 		c.completer = null;
 		c.members_field = new Scope(c);
