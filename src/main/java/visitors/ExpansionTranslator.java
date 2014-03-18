@@ -19,6 +19,7 @@ import com.sun.tools.javac.code.Flags;
 import com.sun.tools.javac.code.Scope;
 import com.sun.tools.javac.code.Symbol;
 import com.sun.tools.javac.code.Symbol.ClassSymbol;
+import com.sun.tools.javac.code.Symbol.TypeSymbol;
 import com.sun.tools.javac.code.Symtab;
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.code.Type.ClassType;
@@ -193,17 +194,25 @@ public class ExpansionTranslator extends TreeTranslator {
 
 	private JCVariableDecl makeExpandedVarDeclaration(JCVariableDecl tree) {
 
+		TypeSymbol symbolOfMorphClass = tree.getType().type.tsym;
+		JCClassDecl treeOfMorphClass = enter.getClassEnv(symbolOfMorphClass).enclClass;
+		
 		// check if has already been rewritten
 		if (replaced.contains(tree.name))
 			return null;
 
 		// Lookup synthetic class: e.g. Logged$Stack
 		Name expandedClassName = names.fromString("Logged$Stack");
-
 		// Fully qualified path: e.g Hello.Logged$Stack
 		JCExpression newType = make.Select(
 				make.Ident(tree.sym.enclClass().name), expandedClassName);
 
+		// Testing synthetic creation
+		JCClassDecl morphedClass = makeMorphedClass(tree.sym.enclClass(), symbolOfMorphClass, tree.type.getTypeArguments());
+		JCExpression morphedClassIdent = make.Select(make.Ident(morphedClass.sym.enclClass().name), morphedClass.name);
+		
+		Debug.printTreeInfo(morphedClass);
+		
 		List<JCExpression> oldInitializerList = ((JCNewClass) tree.init).args;
 
 		JCNewClass initExpression = make.NewClass(null, null, newType,
@@ -219,9 +228,7 @@ public class ExpansionTranslator extends TreeTranslator {
 		return decl;
 	}
 	
-	
-	// 	
-	
+
 	/**
 	 * 	public static class Logged$Stack {
 	 *	  Stack instance;
@@ -229,12 +236,12 @@ public class ExpansionTranslator extends TreeTranslator {
 	 *	    	(...reflective methods...)
 	 *	} 
 	 */
-
-	private JCClassDecl makeMorphedClass(ClassSymbol owner, List<Type> typeArguments) {
+	private JCClassDecl makeMorphedClass(ClassSymbol owner, TypeSymbol morphedClass, List<Type> typeArguments) {
 
 		ClassSymbol c = syms.defineClass(names.empty, owner);
 		
-		c.flatname = names.fromString("Logged$Stack");
+		c.flatname = names.fromString("Logged$2Stack");
+		c.name = c.flatname;
 		c.sourcefile = owner.sourcefile;
 		c.completer = null;
 		c.members_field = new Scope(c);
@@ -247,6 +254,7 @@ public class ExpansionTranslator extends TreeTranslator {
         enterSynthetic(c, owner.members());
         chk.compiled.put(c.flatname, c);
         
+        // just an empty class for now
 		JCClassDecl cdef = make.ClassDef(make.Modifiers(owner.flags()),
 				names.empty, List.<JCTypeParameter> nil(), null,
 				List.<JCExpression> nil(), List.<JCTree> nil());
