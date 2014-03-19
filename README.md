@@ -20,27 +20,50 @@ Manual Testing
 Milestones
 ----------
 
-* (Done) Translate a simple var declaration, with ```__Logged$Stack``` being entered via source:
+* (Done) Translate a simple var declaration, with ```Logged$Stack``` being entered via source:
 
 ``` Java
 Hello.Logged<Hello.Stack> l_stack = new Hello.Logged<Hello.Stack>(new Hello.Stack());
 ```
-
 into this:
 
 ``` Java
-Hello.__Logged$Stack l_stack = new Hello.__Logged$Stack(new Hello.Stack())
+Hello.Logged$Stack l_stack = new Hello.Logged$Stack(new Hello.Stack())
 ```
 
-* Enter the synthetic class ```__Logged$Stack``` programmatically as a top level
+* Enter the synthetic class ```Logged$Stack``` programmatically as a top level
   class in the same package.
 
+The first step is to specialized class definitions using the morphed class as a
+blueprint. This requires the tree of type JCClassDecl to be copied with fresh symbols.
+The source-code equivalent of this is the following transformation.
+
+```
+@morph
+public static class Logged<T> {
+	T instance;
+	public Logged(T t) { this.instance = t; }
+}
+
+public static class Logged$Integer {
+	Integer instance;
+	public Logged(Integer t) { this.instance = t; }
+}
+
+public static class Logged$Customer {
+	Customer instance;
+	public Logged(Customer t) { this.instance = t; }
+}```
+
+The next step is to expand a @for annotation to methods (CTR part) and produce
+the method declaration for something that is equivalent in the source-code level
+with:
 
 ``` Java
-public static class __Logged$Stack {
+public static class Logged$Stack {
   Stack instance;
   
-  public __Logged$Stack(Stack t) { this.instance = t; }
+  public Logged$Stack(Stack t) { this.instance = t; }
   
   public Object pop() {
     System.out.println("Log first");
