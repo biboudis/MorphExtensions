@@ -39,7 +39,6 @@ blueprint. This requires the tree of type JCClassDecl to be copied with fresh sy
 The source-code equivalent of this is the following transformation.
 
 ``` Java
-\@morph
 public static class Logged<T> {
 	T instance;
 	public Logged(T t) { this.instance = t; }
@@ -53,7 +52,8 @@ public static class Logged$Integer {
 public static class Logged$Customer {
 	Customer instance;
 	public Logged(Customer t) { this.instance = t; }
-}```
+}
+```
 
 The next step is to expand a @for annotation to methods (CTR part) and produce
 the method declaration for something that is equivalent in the source-code level
