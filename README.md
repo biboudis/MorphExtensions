@@ -38,7 +38,7 @@ The first step is to specialized class definitions using the morphed class as a
 blueprint. This requires the tree of type JCClassDecl to be copied with fresh symbols.
 The source-code equivalent of this is the following transformation.
 
-```
+``` Java
 @morph
 public static class Logged<T> {
 	T instance;
