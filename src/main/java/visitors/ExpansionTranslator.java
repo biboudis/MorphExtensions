@@ -42,6 +42,7 @@ import com.sun.tools.javac.tree.JCTree.JCNewClass;
 import com.sun.tools.javac.tree.JCTree.JCStatement;
 import com.sun.tools.javac.tree.JCTree.JCTypeParameter;
 import com.sun.tools.javac.tree.JCTree.JCVariableDecl;
+import com.sun.tools.javac.tree.TreeCopier;
 import com.sun.tools.javac.tree.TreeMaker;
 import com.sun.tools.javac.tree.TreeTranslator;
 import com.sun.tools.javac.util.Context;
@@ -195,7 +196,6 @@ public class ExpansionTranslator extends TreeTranslator {
 	private JCVariableDecl makeExpandedVarDeclaration(JCVariableDecl tree) {
 
 		TypeSymbol symbolOfMorphClass = tree.getType().type.tsym;
-		JCClassDecl treeOfMorphClass = enter.getClassEnv(symbolOfMorphClass).enclClass;
 		
 		// check if has already been rewritten
 		if (replaced.contains(tree.name))
@@ -208,10 +208,9 @@ public class ExpansionTranslator extends TreeTranslator {
 				make.Ident(tree.sym.enclClass().name), expandedClassName);
 
 		// Testing synthetic creation
-		JCClassDecl morphedClass = makeMorphedClass(tree.sym.enclClass(), symbolOfMorphClass, tree.type.getTypeArguments());
-		JCExpression morphedClassIdent = make.Select(make.Ident(morphedClass.sym.enclClass().name), morphedClass.name);
-		
-		Debug.printTreeInfo(morphedClass);
+		// JCClassDecl morphedClass = makeMorphedClass(symbolOfMorphClass.enclClass(), symbolOfMorphClass, tree.type.getTypeArguments());
+		// JCExpression morphedClassIdent = make.Select(make.Ident(morphedClass.sym.enclClass().name), morphedClass.name);
+		// Debug.printTreeInfo(morphedClass);
 		
 		List<JCExpression> oldInitializerList = ((JCNewClass) tree.init).args;
 
@@ -236,9 +235,9 @@ public class ExpansionTranslator extends TreeTranslator {
 	 *	    	(...reflective methods...)
 	 *	} 
 	 */
-	private JCClassDecl makeMorphedClass(ClassSymbol owner, TypeSymbol morphedClass, List<Type> typeArguments) {
+	private JCClassDecl makeMorphedClass(ClassSymbol owner, TypeSymbol morphedClass, List<Type> typeArguments, Env<AttrContext> env) {
 
-		ClassSymbol c = syms.defineClass(names.empty, owner);
+		ClassSymbol c = syms.defineClass(names.empty, morphedClass.owner);
 		
 		c.flatname = names.fromString("Logged$2Stack");
 		c.name = c.flatname;
@@ -255,14 +254,20 @@ public class ExpansionTranslator extends TreeTranslator {
         chk.compiled.put(c.flatname, c);
         
         // just an empty class for now
-		JCClassDecl cdef = make.ClassDef(make.Modifiers(owner.flags()),
-				names.empty, List.<JCTypeParameter> nil(), null,
-				List.<JCExpression> nil(), List.<JCTree> nil());
+		JCClassDecl treeOfMorphClass = enter.getClassEnv(morphedClass).enclClass;
+		
+		//JCClassDecl cdef = make.ClassDef(make.Modifiers(owner.flags()),
+		//	names.empty, List.<JCTypeParameter> nil(), null,
+		//	List.<JCExpression> nil(), List.<JCTree> nil());
 
-		cdef.sym = c;
-		cdef.type = c.type;
+		final JCClassDecl newTree = new TreeCopier<JCClassDecl>(make).copy(treeOfMorphClass);
+        // Env<AttrContext> newEnv = env.dup(newTree, env.info.dup(env.info.scope.dupUnshared()));
+        // newEnv.info.scope.owner = env.info.scope.owner;
+		
+		newTree.sym = c;
+		newTree.type = c.type;
 
-		return cdef;
+		return newTree;
 	}
 
 	private void enterSynthetic(ClassSymbol c, Scope members) {
