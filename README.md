@@ -3,6 +3,8 @@ Morph Extensions for Java
 
 This library introduces class-morphing to Java via (JSR 308) type annotations.
 
+(the following are personal notes)
+
 Environment setup
 -----------------
 ``` bash
