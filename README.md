@@ -39,6 +39,7 @@ blueprint. This requires the tree of type JCClassDecl to be copied with fresh sy
 The source-code equivalent of this is the following transformation.
 
 ``` Java
+@morph
 public static class Logged<T> {
 	T instance;
 	public Logged(T t) { this.instance = t; }
