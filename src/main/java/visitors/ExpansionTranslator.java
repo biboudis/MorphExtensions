@@ -208,9 +208,13 @@ public class ExpansionTranslator extends TreeTranslator {
 				make.Ident(tree.sym.enclClass().name), expandedClassName);
 
 		// Testing synthetic creation
-		// JCClassDecl morphedClass = makeMorphedClass(symbolOfMorphClass.enclClass(), symbolOfMorphClass, tree.type.getTypeArguments());
-		// JCExpression morphedClassIdent = make.Select(make.Ident(morphedClass.sym.enclClass().name), morphedClass.name);
-		// Debug.printTreeInfo(morphedClass);
+		JCClassDecl morphedClass = makeMorphedClass(symbolOfMorphClass.enclClass(), symbolOfMorphClass, tree.type.getTypeArguments(), null);
+		
+		JCExpression morphedClassIdent = make.Select(make.Ident(morphedClass.name), morphedClass.sym.enclClass().name);
+		
+		Debug.printTreeInfo(morphedClass);
+		
+		Debug.printTreeInfo(morphedClassIdent);
 		
 		List<JCExpression> oldInitializerList = ((JCNewClass) tree.init).args;
 
@@ -227,7 +231,6 @@ public class ExpansionTranslator extends TreeTranslator {
 		return decl;
 	}
 	
-
 	/**
 	 * 	public static class Logged$Stack {
 	 *	  Stack instance;
@@ -239,7 +242,7 @@ public class ExpansionTranslator extends TreeTranslator {
 
 		ClassSymbol c = syms.defineClass(names.empty, morphedClass.owner);
 		
-		c.flatname = names.fromString("Logged$2Stack");
+		c.flatname = names.fromString("Logged$Stack");
 		c.name = c.flatname;
 		c.sourcefile = owner.sourcefile;
 		c.completer = null;
