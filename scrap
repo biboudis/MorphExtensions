@@ -23,3 +23,8 @@
       
          // attr.attribStat(newVarDef, newEnv);
 */          
+
+
+
+
+-Xdoclint /home/bibou/Projects/jdk9/jdk9/langtools/test/tools/doclint/ReferenceTest.java
