@@ -23,6 +23,8 @@ import com.sun.tools.javac.code.Symbol.TypeSymbol;
 import com.sun.tools.javac.code.Symtab;
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.code.Type.ClassType;
+import com.sun.tools.javac.code.TypeTag;
+import com.sun.tools.javac.code.Types;
 import com.sun.tools.javac.comp.Attr;
 import com.sun.tools.javac.comp.AttrContext;
 import com.sun.tools.javac.comp.Check;
@@ -43,6 +45,7 @@ import com.sun.tools.javac.tree.JCTree.JCStatement;
 import com.sun.tools.javac.tree.JCTree.JCTypeParameter;
 import com.sun.tools.javac.tree.JCTree.JCVariableDecl;
 import com.sun.tools.javac.tree.TreeCopier;
+import com.sun.tools.javac.tree.TreeInfo;
 import com.sun.tools.javac.tree.TreeMaker;
 import com.sun.tools.javac.tree.TreeScanner;
 import com.sun.tools.javac.tree.TreeTranslator;
@@ -71,6 +74,7 @@ public class ExpansionTranslator extends TreeTranslator {
 	protected Log log;
 	protected Symtab syms;
 	protected Check chk;
+	protected Types types;
 
 	public ExpansionTranslator(Context context) {
 		make = TreeMaker.instance(context);
@@ -81,6 +85,7 @@ public class ExpansionTranslator extends TreeTranslator {
 		log = Log.instance(context);
 		syms = Symtab.instance(context);
 		chk = Check.instance(context);
+		types = Types.instance(context);
 	}
 
 	Env<AttrContext> methodEnv;
@@ -209,12 +214,11 @@ public class ExpansionTranslator extends TreeTranslator {
 				make.Ident(tree.sym.enclClass().name), expandedClassName);
 
 		// Testing synthetic creation
-		JCClassDecl morphedClass = makeMorphedClass(symbolOfMorphClass.enclClass(), symbolOfMorphClass, tree.type, null);
+		JCClassDecl morphedClass = makeMorphedClass(symbolOfMorphClass.enclClass(), symbolOfMorphClass, tree.type, enter.getClassEnv(symbolOfMorphClass));
 		
 		JCExpression morphedClassIdent = make.Select(make.Ident(morphedClass.name), morphedClass.sym.enclClass().name);
 		
 		Debug.printTreeInfo(morphedClass);
-		
 		Debug.printTreeInfo(morphedClassIdent);
 		
 		List<JCExpression> oldInitializerList = ((JCNewClass) tree.init).args;
@@ -241,22 +245,29 @@ public class ExpansionTranslator extends TreeTranslator {
 	 *      System.out.println("Log first");
 	 *      return instance.m();
 	 *    }
-	 * 
+	 * 	//specializes to->
 	 *  public static class Logged$Stack {
 	 *	  Stack instance;
 	 *    public Logged$Stack(Stack t) { this.instance = t; }
 	 *	  (...reflective methods...)
 	 *	} 
 	 */
-	private JCClassDecl makeMorphedClass(ClassSymbol owner, TypeSymbol morphedClass, final Type instantiatedType, Env<AttrContext> env) {
+	private JCClassDecl makeMorphedClass(ClassSymbol owner, TypeSymbol morphedClass, final Type instantiatedType, final Env<AttrContext> env) {
 
 		JCClassDecl morphClassDefTree = enter.getClassEnv(morphedClass).enclClass;
-		JCClassDecl specializedClassDefTree = new TreeCopier<JCClassDecl>(make).copy(morphClassDefTree);
+		final JCClassDecl specializedClassDefTree = new TreeCopier<JCClassDecl>(make).copy(morphClassDefTree);
+		
+		attr.attribExpr(morphClassDefTree, env);
+		
+		final Map<Type, Type> map = buildSubstitutionMap(instantiatedType.tsym.enclClass(), instantiatedType);
 		
 		JCTree.Visitor specializer = new TreeTranslator() {
 
 			@Override
 			public void visitClassDef(JCClassDecl tree) {
+				
+				super.visitClassDef(tree);
+				
 				StringBuilder sb = new StringBuilder();
 				sb.append(tree.name);
 				List<Type> typeParameters = instantiatedType.getTypeArguments();
@@ -265,14 +276,29 @@ public class ExpansionTranslator extends TreeTranslator {
 					sb.append(tp.tsym.name);
 				}
 				System.out.println("I made this string: " + sb.toString());
-				tree.name = names.fromString(sb.toString());
-				tree.typarams = List.nil();
 				
-				super.visitClassDef(tree);
+				specializedClassDefTree.name = names.fromString(sb.toString());
+				specializedClassDefTree.typarams = List.nil();
+			}
+			
+			public void visitVarDef(JCVariableDecl tree) {
+				
+				super.visitVarDef(tree);				
+			}
+			
+			public void visitIdent(JCIdent tree) {
+				
+				if (tree.sym.kind == Kinds.TYP && tree.sym.type.hasTag(TypeTag.TYPEVAR)) {
+					System.out.println(tree + " must be substituted by " + map.get(tree.sym.type));
+		            
+					//make.at(tree.pos).Type(instantiatedType.getTypeArguments().);
+		        }
+				
+				super.visitIdent(tree);
 			}
 	    };
 		
-	    specializedClassDefTree.accept(specializer);
+	    morphClassDefTree.accept(specializer);
 	    
 	    // like enter phase, see visitClassDef 
 		ClassSymbol c = syms.defineClass(names.empty, morphedClass.owner);
@@ -296,6 +322,26 @@ public class ExpansionTranslator extends TreeTranslator {
 
 		return specializedClassDefTree;
 	}
+	
+	/// type of formal type variable -> type of actual type argument
+    private Map<Type, Type> buildSubstitutionMap(ClassSymbol c, Type instantiatedType) {
+
+    	Map<Type, Type> map = new HashMap<Type, Type>();
+    	
+    	List<Type> formals = c.type.allparams();
+        List<Type> actuals = instantiatedType.getTypeArguments();
+        while (!actuals.isEmpty() && !formals.isEmpty()) {
+            Type actual = actuals.head;
+            Type formal = formals.head;
+
+            map.put(formal, actual);
+
+            actuals = actuals.tail;
+            formals = formals.tail;
+        }
+        
+        return map;
+    }
 
 	private void enterSynthetic(ClassSymbol c, Scope members) {
 		members.enter(c);
