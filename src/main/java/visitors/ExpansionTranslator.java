@@ -33,6 +33,7 @@ import com.sun.tools.javac.comp.Env;
 import com.sun.tools.javac.comp.MemberEnter;
 import com.sun.tools.javac.jvm.ClassReader;
 import com.sun.tools.javac.tree.JCTree;
+import com.sun.tools.javac.tree.JCTree.JCAnnotation;
 import com.sun.tools.javac.tree.JCTree.JCBlock;
 import com.sun.tools.javac.tree.JCTree.JCClassDecl;
 import com.sun.tools.javac.tree.JCTree.JCCompilationUnit;
@@ -256,51 +257,8 @@ public class ExpansionTranslator extends TreeTranslator {
 
 		JCClassDecl morphClassDefTree = enter.getClassEnv(morphedClass).enclClass;
 		final JCClassDecl specializedClassDefTree = new TreeCopier<JCClassDecl>(make).copy(morphClassDefTree);
-		
-		attr.attribExpr(morphClassDefTree, env);
-		
-		final Map<Type, Type> map = buildSubstitutionMap(instantiatedType.tsym.enclClass(), instantiatedType);
-		
-		JCTree.Visitor specializer = new TreeTranslator() {
-
-			@Override
-			public void visitClassDef(JCClassDecl tree) {
-				
-				super.visitClassDef(tree);
-				
-				StringBuilder sb = new StringBuilder();
-				sb.append(tree.name);
-				List<Type> typeParameters = instantiatedType.getTypeArguments();
-				for (Type tp : typeParameters) {
-					sb.append("$");
-					sb.append(tp.tsym.name);
-				}
-				System.out.println("I made this string: " + sb.toString());
-				
-				specializedClassDefTree.name = names.fromString(sb.toString());
-				specializedClassDefTree.typarams = List.nil();
-			}
-			
-			public void visitVarDef(JCVariableDecl tree) {
-				
-				super.visitVarDef(tree);				
-			}
-			
-			public void visitIdent(JCIdent tree) {
-				
-				if (tree.sym.kind == Kinds.TYP && tree.sym.type.hasTag(TypeTag.TYPEVAR)) {
-					System.out.println(tree + " must be substituted by " + map.get(tree.sym.type));
-		            
-					//make.at(tree.pos).Type(instantiatedType.getTypeArguments().);
-		        }
-				
-				super.visitIdent(tree);
-			}
-	    };
-		
-	    morphClassDefTree.accept(specializer);
-	    
-	    // like enter phase, see visitClassDef 
+		    
+		// Needs refactoring to delegate the class symbol creation to the enter phase (see visitClassDef) 
 		ClassSymbol c = syms.defineClass(names.empty, morphedClass.owner);
 		
 		c.flatname = names.fromString("Logged$Stack");
@@ -319,14 +277,60 @@ public class ExpansionTranslator extends TreeTranslator {
                 
         specializedClassDefTree.sym = c;
         specializedClassDefTree.type = c.type;
+        ///////////////////////////////
+        
+		attr.attribExpr(specializedClassDefTree, env);
+        
+		final Map<String, Type> map = buildSubstitutionMap(instantiatedType.tsym.enclClass(), instantiatedType);
+		
+		JCTree.Visitor specializer = new TreeTranslator() {
+			
+			@Override
+			public void visitClassDef(JCClassDecl tree) {
+				
+				super.visitClassDef(tree);
+				
+				StringBuilder sb = new StringBuilder();
+				sb.append(tree.name);
+				List<Type> typeParameters = instantiatedType.getTypeArguments();
+				
+				for (Type tp : typeParameters) {
+					sb.append("$");
+					sb.append(tp.tsym.name);
+				}
+				
+				System.out.println("# Synthetic string for class name " + sb.toString());
+				
+				tree.name = names.fromString(sb.toString());
+				tree.typarams = List.nil();
+			}
+			
+			@Override
+			public void visitVarDef(JCVariableDecl tree) {
+				super.visitVarDef(tree);	
+				if (map.containsKey(tree.vartype.toString())) {
+					tree.vartype = make.at(tree.pos).Ident(map.get(tree.vartype.toString()).tsym);
+		        }
+			}
+			
+			@Override
+			public void visitIdent(JCIdent tree) {
+				super.visitIdent(tree);
+			}
+			
+			//public void visit
+			
+	    };
+		
+	    specializedClassDefTree.accept(specializer);
 
-		return specializedClassDefTree;
+	    return specializedClassDefTree;
 	}
 	
 	/// type of formal type variable -> type of actual type argument
-    private Map<Type, Type> buildSubstitutionMap(ClassSymbol c, Type instantiatedType) {
+    private Map<String, Type> buildSubstitutionMap(ClassSymbol c, Type instantiatedType) {
 
-    	Map<Type, Type> map = new HashMap<Type, Type>();
+    	Map<String, Type> map = new HashMap<String, Type>();
     	
     	List<Type> formals = c.type.allparams();
         List<Type> actuals = instantiatedType.getTypeArguments();
@@ -334,8 +338,10 @@ public class ExpansionTranslator extends TreeTranslator {
             Type actual = actuals.head;
             Type formal = formals.head;
 
-            map.put(formal, actual);
-
+            map.put(formal.toString(), actual);
+            
+            System.out.println("# Adding to substitution map: " + formal + "->" + actual);
+            
             actuals = actuals.tail;
             formals = formals.tail;
         }
