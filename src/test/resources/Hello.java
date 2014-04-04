@@ -16,18 +16,16 @@ public class Hello {
 	@Morph
 	public static class Logged<T> {
 		
-		T instance;
-		
-		public Logged(T t) { this.instance = t; }
-		
-        /*
-        @for("m", "public R ()") 
-		public R <R>m()
-		{
-			System.out.println("Log first");
-			return instance.m();
-		}
-		*/
+            T instance;
+
+            public Logged(T t) { this.instance = t; }
+		 
+            /* @For("m", "public R ()") 
+            public R <R>m()
+            {
+                    System.out.println("Log first");
+                    return instance.m();
+            } */ 
 	}
 	
 	// Will be this effectively at compile time.

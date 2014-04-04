@@ -58,326 +58,319 @@ import com.sun.tools.javac.util.Names;
 
 public class ExpansionTranslator extends TreeTranslator {
 
-	private static final String SYN_TYPE_PREFIX = "__";
-	private static final String SYN_VAR_NAME_SUFFIX = "$SYN";
+    private static final String SYN_TYPE_PREFIX = "__";
+    private static final String SYN_VAR_NAME_SUFFIX = "$SYN";
 
-	protected Set<Name> replaced = new HashSet<Name>();
+    protected Set<Name> replaced = new HashSet<Name>();
 
-	protected Context context;
-	protected ProcessingEnvironment processingEnv;
+    protected Context context;
+    protected ProcessingEnvironment processingEnv;
 
-	protected TreeMaker make;
-	protected Names names;
-	protected Enter enter;
-	protected MemberEnter memberEnter;
-	protected TreePath path;
-	protected Attr attr;
-	protected Log log;
-	protected Symtab syms;
-	protected Check chk;
-	protected Types types;
+    protected TreeMaker make;
+    protected Names names;
+    protected Enter enter;
+    protected MemberEnter memberEnter;
+    protected TreePath path;
+    protected Attr attr;
+    protected Log log;
+    protected Symtab syms;
+    protected Check chk;
+    protected Types types;
+    protected ClassReader reader;
 
-	public ExpansionTranslator(Context context) {
-		make = TreeMaker.instance(context);
-		names = Names.instance(context);
-		enter = Enter.instance(context);
-		memberEnter = MemberEnter.instance(context);
-		attr = Attr.instance(context);
-		log = Log.instance(context);
-		syms = Symtab.instance(context);
-		chk = Check.instance(context);
-		types = Types.instance(context);
-	}
+    public ExpansionTranslator(Context context) {
+        make = TreeMaker.instance(context);
+        names = Names.instance(context);
+        enter = Enter.instance(context);
+        memberEnter = MemberEnter.instance(context);
+        attr = Attr.instance(context);
+        log = Log.instance(context);
+        syms = Symtab.instance(context);
+        chk = Check.instance(context);
+        types = Types.instance(context);
+        reader = ClassReader.instance(context);
+    }
 
-	Env<AttrContext> methodEnv;
+    Env<AttrContext> methodEnv;
 
-	@Override
-	public void visitTopLevel(JCCompilationUnit tree) {
-		super.visitTopLevel(tree);
-	}
+    @Override
+    public void visitTopLevel(JCCompilationUnit tree) {
+        super.visitTopLevel(tree);
+    }
 
-	@Override
-	public void visitMethodDef(JCMethodDecl tree) {
-		// Tracking the current method environment to use it in attribution.
-		methodEnv = memberEnter.getMethodEnv(tree,
-				enter.getClassEnv(tree.sym.enclClass()));
+    @Override
+    public void visitMethodDef(JCMethodDecl tree) {
+        // Tracking the current method environment to use it in attribution.
+        methodEnv = memberEnter.getMethodEnv(tree,
+                enter.getClassEnv(tree.sym.enclClass()));
 
-		super.visitMethodDef(tree);
-	}
+        super.visitMethodDef(tree);
+    }
 
-	@Override
-	public void visitBlock(JCBlock tree) {
-		List<JCStatement> stats;
+    @Override
+    public void visitBlock(JCBlock tree) {
+        List<JCStatement> stats;
 
-		for (stats = tree.stats; stats.tail != null; stats = stats.tail) {
-			JCStatement stat = stats.head;
+        for (stats = tree.stats; stats.tail != null; stats = stats.tail) {
+            JCStatement stat = stats.head;
 
 			// This step is needed to be able to use symbols and type symbols
-			// below.
-			attr.attribStat(stat, methodEnv);
+            // below.
+            attr.attribStat(stat, methodEnv);
 
-			if (isMorphedVariableDeclaration(stat)) {
-				JCVariableDecl varDecl = (JCVariableDecl) stat;
+            if (isMorphedVariableDeclaration(stat)) {
+                JCVariableDecl varDecl = (JCVariableDecl) stat;
 
-				System.out.println("# Found a morphed variable declaration: "
-						+ varDecl);
+                System.out.println("# Found a morphed variable declaration: "
+                        + varDecl);
 
-				Debug.printEnvInfo(methodEnv);
-				Debug.printTreeInfo(varDecl);
-				Debug.printSymbolInfo(varDecl.sym);
-				Debug.printScopeInfo(varDecl.sym.enclClass().members());
+                Debug.printEnvInfo(methodEnv);
+                Debug.printTreeInfo(varDecl);
+                Debug.printSymbolInfo(varDecl.sym);
+                Debug.printScopeInfo(varDecl.sym.enclClass().members());
 
-				JCVariableDecl ret = makeExpandedVarDeclaration(varDecl);
+                JCVariableDecl ret = makeExpandedVarDeclaration(varDecl);
 
-				System.out.println("# translated to: \n" + ret);
+                System.out.println("# translated to: \n" + ret);
 
-				if (ret != null) {
-					spliceNode(stats, stat, ret);
+                if (ret != null) {
+                    spliceNode(stats, stat, ret);
 
-					attr.attribStat(tree, methodEnv);
-				}
+                    attr.attribStat(tree, methodEnv);
+                }
 
-				Debug.printScopeInfo(varDecl.sym.enclClass().members());
-			}
-		}
+                Debug.printScopeInfo(varDecl.sym.enclClass().members());
+            }
+        }
 
-		result = tree;
+        result = tree;
 
-		super.visitBlock(tree);
-	}
+        super.visitBlock(tree);
+    }
 
-	@Override
-	public void visitApply(JCMethodInvocation tree) {
-		super.visitApply(tree);
+    @Override
+    public void visitApply(JCMethodInvocation tree) {
+        super.visitApply(tree);
 
-		System.out.println(tree);
-	}
+        System.out.println(tree);
+    }
 
-	@Override
-	public void visitIdent(JCIdent tree) {
-		super.visitIdent(tree);
+    @Override
+    public void visitIdent(JCIdent tree) {
+        super.visitIdent(tree);
 
 		// Translate a local variable access: e.g. l_stack to l_stack$SYN
-		// if the variable access comes from a variable declaration that has
-		// been rewritten.
-		if (replaced.contains(tree.name)) {
-			System.out.println("Found one!" + tree.name);
-			String newName = tree.name.toString() + SYN_VAR_NAME_SUFFIX;
+        // if the variable access comes from a variable declaration that has
+        // been rewritten.
+        if (replaced.contains(tree.name)) {
+            System.out.println("Found one!" + tree.name);
+            String newName = tree.name.toString() + SYN_VAR_NAME_SUFFIX;
 
-			JCTree.JCExpression expr = make.Ident(names.fromString(newName));
-			System.out.println("to: " + expr);
-			result = expr;
-		}
-	}
+            JCTree.JCExpression expr = make.Ident(names.fromString(newName));
+            System.out.println("to: " + expr);
+            result = expr;
+        }
+    }
 
-	@Override
-	public void visitVarDef(JCVariableDecl tree) {
+    @Override
+    public void visitVarDef(JCVariableDecl tree) {
 
-		super.visitVarDef(tree);
+        super.visitVarDef(tree);
 
-		if (isMorphedVariableDeclaration(tree)) {
-			makeExpandedVarDeclaration(tree);
-		}
-	}
+        if (isMorphedVariableDeclaration(tree)) {
+            makeExpandedVarDeclaration(tree);
+        }
+    }
 
-	// Inspired by EnerJ
-	private void enterMember(JCTree member, Env<AttrContext> env) {
-		Method meth = null;
-		try {
-			meth = MemberEnter.class.getDeclaredMethod("memberEnter",
-					JCTree.class, Env.class);
-		} catch (NoSuchMethodException e) {
-			System.out.println("raised only if compiler internal api changes");
-		}
-		meth.setAccessible(true);
-		Object[] args = { member, env };
-		try {
-			meth.invoke(memberEnter, args);
-		} catch (IllegalAccessException e) {
-			System.out.println("raised only if compiler internal api changes");
-		} catch (InvocationTargetException e) {
-			System.out.println("raised only if compiler internal api changes");
-		}
-	}
+    // Inspired by EnerJ
+    private void enterMember(JCTree member, Env<AttrContext> env) {
+        Method meth = null;
+        try {
+            meth = MemberEnter.class.getDeclaredMethod("memberEnter",
+                    JCTree.class, Env.class);
+        } catch (NoSuchMethodException e) {
+            System.out.println("raised only if compiler internal api changes");
+        }
+        meth.setAccessible(true);
+        Object[] args = {member, env};
+        try {
+            meth.invoke(memberEnter, args);
+        } catch (IllegalAccessException e) {
+            System.out.println("raised only if compiler internal api changes");
+        } catch (InvocationTargetException e) {
+            System.out.println("raised only if compiler internal api changes");
+        }
+    }
 
-	private JCVariableDecl makeExpandedVarDeclaration(JCVariableDecl tree) {
+    private JCVariableDecl makeExpandedVarDeclaration(JCVariableDecl tree) {
 
-		TypeSymbol symbolOfMorphClass = tree.getType().type.tsym;
-		
-		// check if has already been rewritten
-		if (replaced.contains(tree.name))
-			return null;
+        TypeSymbol symbolOfMorphClass = tree.getType().type.tsym;
 
-		// Lookup synthetic class: e.g. Logged$Stack
-		Name expandedClassName = names.fromString("Logged$Stack");
-		// Fully qualified path: e.g Hello.Logged$Stack
-		JCExpression newType = make.Select(
-				make.Ident(tree.sym.enclClass().name), expandedClassName);
+        // check if has already been rewritten
+        if (replaced.contains(tree.name)) {
+            return null;
+        }
 
-		// Testing synthetic creation
-		JCClassDecl morphedClass = makeMorphedClass(symbolOfMorphClass.enclClass(), symbolOfMorphClass, tree.type, enter.getClassEnv(symbolOfMorphClass));
-		
-		JCExpression morphedClassIdent = make.Select(make.Ident(morphedClass.name), morphedClass.sym.enclClass().name);
-		
-		Debug.printTreeInfo(morphedClass);
-		Debug.printTreeInfo(morphedClassIdent);
-		
-		List<JCExpression> oldInitializerList = ((JCNewClass) tree.init).args;
+        // Lookup synthetic class: e.g. Logged$Stack
+        Name expandedClassName = names.fromString("Logged$Stack");
+        // Fully qualified path: e.g Hello.Logged$Stack
+        JCExpression newType = make.Select(
+                make.Ident(tree.sym.enclClass().name), expandedClassName);
 
-		JCNewClass initExpression = make.NewClass(null, null, newType,
-				oldInitializerList, null);
+        // Testing synthetic creation
+        JCClassDecl morphedClass = makeMorphedClass(symbolOfMorphClass.enclClass(), symbolOfMorphClass, tree.type, enter.getClassEnv(symbolOfMorphClass));
 
-		JCTree.JCVariableDecl decl = make.VarDef(tree.mods,
-				names.fromString(tree.name + SYN_VAR_NAME_SUFFIX), newType,
-				initExpression);
+        JCExpression morphedClassIdent = make.Select(make.Ident(morphedClass.name), morphedClass.sym.enclClass().name);
 
-		// keep track of the produced node (with the original name)
-		replaced.add(tree.name);
+        Debug.printTreeInfo(morphedClass);
+        Debug.printTreeInfo(morphedClassIdent);
 
-		return decl;
-	}
-	
-	/**
-	 *  @Morph
-	 *  public static class Logged<T> {
-	 *    T instance;
-	 *    public Logged(T t) { this.instance = t; }
-	 *    @for("m", "public R ()") public R<R>m() { 
-	 *      System.out.println("Log first");
-	 *      return instance.m();
-	 *    }
-	 * 	//specializes to->
-	 *  public static class Logged$Stack {
-	 *	  Stack instance;
-	 *    public Logged$Stack(Stack t) { this.instance = t; }
-	 *	  (...reflective methods...)
-	 *	} 
-	 */
-	private JCClassDecl makeMorphedClass(ClassSymbol owner, TypeSymbol morphedClass, final Type instantiatedType, final Env<AttrContext> env) {
+        List<JCExpression> oldInitializerList = ((JCNewClass) tree.init).args;
 
-		JCClassDecl morphClassDefTree = enter.getClassEnv(morphedClass).enclClass;
-		final JCClassDecl specializedClassDefTree = new TreeCopier<JCClassDecl>(make).copy(morphClassDefTree);
-		    
-		// Needs refactoring to delegate the class symbol creation to the enter phase (see visitClassDef) 
-		ClassSymbol c = syms.defineClass(names.empty, morphedClass.owner);
-		
-		c.flatname = names.fromString("Logged$Stack");
-		c.name = c.flatname;
-		c.sourcefile = owner.sourcefile;
-		c.completer = null;
-		c.members_field = new Scope(c);
-		c.flags_field = Flags.SYNTHETIC | Flags.STATIC;
-		
-		ClassType ctype = (ClassType) c.type;
-		ctype.supertype_field = syms.objectType;
-		ctype.interfaces_field = List.nil();
+        JCNewClass initExpression = make.NewClass(null, null, newType,
+                oldInitializerList, null);
+
+        JCTree.JCVariableDecl decl = make.VarDef(tree.mods,
+                names.fromString(tree.name + SYN_VAR_NAME_SUFFIX), newType,
+                initExpression);
+
+        // keep track of the produced node (with the original name)
+        replaced.add(tree.name);
+
+        return decl;
+    }
+
+    /**
+     * @Morph public static class Logged<T> { T instance; public Logged(T t) {
+     * this.instance = t; }
+     * @for("m", "public R ()") public R<R>m() { System.out.println("Log
+     * first"); return instance.m(); } //specializes to-> public static class
+     * Logged$Stack { Stack instance; public Logged$Stack(Stack t) {
+     * this.instance = t; } (...reflective methods...) }
+     */
+    private JCClassDecl makeMorphedClass(ClassSymbol owner, TypeSymbol morphedClass, final Type instantiatedType, final Env<AttrContext> env) {
+
+        JCClassDecl morphClassDefTree = enter.getClassEnv(morphedClass).enclClass;
+        final JCClassDecl specializedClassDefTree = new TreeCopier<JCClassDecl>(make).copy(morphClassDefTree);
+
+        // Needs refactoring to delegate the class symbol creation to the enter phase (see visitClassDef) 
+        ClassSymbol c = reader.defineClass(names.empty, morphedClass.owner);
+
+        c.flatname = names.fromString("Logged$Stack");
+        c.name = c.flatname;
+        c.sourcefile = owner.sourcefile;
+        c.completer = null;
+        c.members_field = new Scope(c);
+        c.flags_field = Flags.SYNTHETIC | Flags.STATIC;
+
+        ClassType ctype = (ClassType) c.type;
+        ctype.supertype_field = syms.objectType;
+        ctype.interfaces_field = List.nil();
 
         enterSynthetic(c, owner.members());
         chk.compiled.put(c.flatname, c);
-                
+
         specializedClassDefTree.sym = c;
         specializedClassDefTree.type = c.type;
         ///////////////////////////////
-        
-		attr.attribExpr(specializedClassDefTree, env);
-        
-		final Map<String, Type> map = buildSubstitutionMap(instantiatedType.tsym.enclClass(), instantiatedType);
-		
-		JCTree.Visitor specializer = new TreeTranslator() {
-			
-			@Override
-			public void visitClassDef(JCClassDecl tree) {
-				
-				super.visitClassDef(tree);
-				
-				StringBuilder sb = new StringBuilder();
-				sb.append(tree.name);
-				List<Type> typeParameters = instantiatedType.getTypeArguments();
-				
-				for (Type tp : typeParameters) {
-					sb.append("$");
-					sb.append(tp.tsym.name);
-				}
-				
-				System.out.println("# Synthetic string for class name " + sb.toString());
-				
-				tree.name = names.fromString(sb.toString());
-				tree.typarams = List.nil();
-			}
-			
-			@Override
-			public void visitVarDef(JCVariableDecl tree) {
-				super.visitVarDef(tree);	
-				if (map.containsKey(tree.vartype.toString())) {
-					tree.vartype = make.at(tree.pos).Ident(map.get(tree.vartype.toString()).tsym);
-		        }
-			}
-			
-			@Override
-			public void visitIdent(JCIdent tree) {
-				super.visitIdent(tree);
-			}
-			
-			//public void visit
-			
-	    };
-		
-	    specializedClassDefTree.accept(specializer);
 
-	    return specializedClassDefTree;
-	}
-	
-	/// type of formal type variable -> type of actual type argument
+        attr.attribExpr(specializedClassDefTree, env);
+
+        final Map<String, Type> map = buildSubstitutionMap(instantiatedType.tsym.enclClass(), instantiatedType);
+
+        JCTree.Visitor specializer = new TreeTranslator() {
+
+            @Override
+            public void visitClassDef(JCClassDecl tree) {
+
+                super.visitClassDef(tree);
+
+                StringBuilder sb = new StringBuilder();
+                sb.append(tree.name);
+                List<Type> typeParameters = instantiatedType.getTypeArguments();
+
+                for (Type tp : typeParameters) {
+                    sb.append("$");
+                    sb.append(tp.tsym.name);
+                }
+
+                System.out.println("# Synthetic string for class name " + sb.toString());
+
+                tree.name = names.fromString(sb.toString());
+                tree.typarams = List.nil();
+            }
+
+            @Override
+            public void visitVarDef(JCVariableDecl tree) {
+                super.visitVarDef(tree);
+                if (map.containsKey(tree.vartype.toString())) {
+                    tree.vartype = make.at(tree.pos).Ident(map.get(tree.vartype.toString()).tsym);
+                }
+            }
+
+            @Override
+            public void visitIdent(JCIdent tree) {
+                super.visitIdent(tree);
+            }
+
+        };
+
+        specializedClassDefTree.accept(specializer);
+
+        return specializedClassDefTree;
+    }
+
+    /// type of formal type variable -> type of actual type argument
     private Map<String, Type> buildSubstitutionMap(ClassSymbol c, Type instantiatedType) {
 
-    	Map<String, Type> map = new HashMap<String, Type>();
-    	
-    	List<Type> formals = c.type.allparams();
+        Map<String, Type> map = new HashMap<String, Type>();
+
+        List<Type> formals = c.type.allparams();
         List<Type> actuals = instantiatedType.getTypeArguments();
         while (!actuals.isEmpty() && !formals.isEmpty()) {
             Type actual = actuals.head;
             Type formal = formals.head;
 
             map.put(formal.toString(), actual);
-            
+
             System.out.println("# Adding to substitution map: " + formal + "->" + actual);
-            
+
             actuals = actuals.tail;
             formals = formals.tail;
         }
-        
+
         return map;
     }
 
-	private void enterSynthetic(ClassSymbol c, Scope members) {
-		members.enter(c);
-	}
+    private void enterSynthetic(ClassSymbol c, Scope members) {
+        members.enter(c);
+    }
 
-	private boolean isMorphedVariableDeclaration(JCTree tree) {
-		if (tree.getKind() == Kind.VARIABLE) {
-			JCVariableDecl varDecl = ((JCVariableDecl) tree);
+    private boolean isMorphedVariableDeclaration(JCTree tree) {
+        if (tree.getKind() == Kind.VARIABLE) {
+            JCVariableDecl varDecl = ((JCVariableDecl) tree);
 
-			return varDecl.getType().type.tsym.getAnnotation(Morph.class) != null;
-		}
+            return varDecl.getType().type.tsym.getAnnotation(Morph.class) != null;
+        }
 
-		return false;
-	}
+        return false;
+    }
 
-	private void spliceNode(List<JCStatement> statementList,
-			JCStatement oldNode, JCStatement newNode) {
-		List<JCTree.JCStatement> newList = List
-				.<JCTree.JCStatement> of(newNode);
-		newList.tail = statementList.tail;
-		statementList.tail = newList;
-	}
+    private void spliceNode(List<JCStatement> statementList,
+            JCStatement oldNode, JCStatement newNode) {
+        List<JCTree.JCStatement> newList = List
+                .<JCTree.JCStatement>of(newNode);
+        newList.tail = statementList.tail;
+        statementList.tail = newList;
+    }
 
-	private JCExpression stringToExpression(String chain) {
-		String[] symbols = chain.split("\\.");
-		JCExpression node = make.Ident(names.fromString(symbols[0]));
-		for (int i = 1; i < symbols.length; i++) {
-			Name nextName = names.fromString(symbols[i]);
-			node = make.Select(node, nextName);
-		}
-		return node;
-	}
+    private JCExpression stringToExpression(String chain) {
+        String[] symbols = chain.split("\\.");
+        JCExpression node = make.Ident(names.fromString(symbols[0]));
+        for (int i = 1; i < symbols.length; i++) {
+            Name nextName = names.fromString(symbols[i]);
+            node = make.Select(node, nextName);
+        }
+        return node;
+    }
 }

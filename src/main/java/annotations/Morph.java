@@ -2,7 +2,6 @@ package annotations;
 
 import java.lang.annotation.*;
 
-import checkers.quals.*;
 
 /**
  * Type annotation to indicate a meta-class that includes static for patterns.
@@ -11,9 +10,6 @@ import checkers.quals.*;
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ ElementType.TYPE })
-@TypeQualifier
-@SubtypeOf({})
-@DefaultQualifierInHierarchy
 public @interface Morph {
 
 }
