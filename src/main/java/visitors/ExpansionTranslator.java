@@ -241,12 +241,24 @@ public class ExpansionTranslator extends TreeTranslator {
     }
 
     /**
-     * @Morph public static class Logged<T> { T instance; public Logged(T t) {
-     * this.instance = t; }
-     * @for("m", "public R ()") public R<R>m() { System.out.println("Log
-     * first"); return instance.m(); } //specializes to-> public static class
-     * Logged$Stack { Stack instance; public Logged$Stack(Stack t) {
-     * this.instance = t; } (...reflective methods...) }
+     * @Morph 
+     * public static class Logged<T> { 
+     *  T instance; 
+     *  public Logged(T t) {
+     *    this.instance = t; 
+     *  }
+     * 
+     * @for("m", "public R ()") 
+     * public R<R>m() { 
+     *   System.out.println("Log first"); 
+     *   return instance.m(); 
+     * } //specializes to-> 
+     * 
+     * public static class Logged$Stack { 
+     *   Stack instance; 
+     *   public Logged$Stack(Stack t) {
+     *      this.instance = t; 
+     *   } (...reflective methods...) }
      */
     private JCClassDecl makeMorphedClass(ClassSymbol owner, TypeSymbol morphedClass, final Type instantiatedType, final Env<AttrContext> env) {
 
@@ -299,7 +311,12 @@ public class ExpansionTranslator extends TreeTranslator {
                 tree.name = names.fromString(sb.toString());
                 tree.typarams = List.nil();
             }
-
+            
+            @Override
+            public void visitMethodDef(JCMethodDecl tree) {
+               
+            }
+            
             @Override
             public void visitVarDef(JCVariableDecl tree) {
                 super.visitVarDef(tree);

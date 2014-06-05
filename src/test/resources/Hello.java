@@ -20,12 +20,13 @@ public class Hello {
 
             public Logged(T t) { this.instance = t; }
 		 
-            /* @For("m", "public R ()") 
-            public R <R>m()
-            {
-                    System.out.println("Log first");
-                    return instance.m();
-            } */ 
+//            @For("m", "public R ()") 
+//            @For()
+//            public void m()
+//            {
+//                    System.out.println("Log first");
+//                    instance.m();
+//            }
 	}
 	
 	// Will be this effectively at compile time.
